@@ -2,9 +2,10 @@ package analysis
 
 import (
 	"fmt"
+	Mcq "github.com/Aol1234/studentLearningGoServer/questionnaire"
+	userApi "github.com/Aol1234/studentLearningGoServer/userModel"
 	"github.com/jinzhu/gorm"
-	Mcq "studentLearningGoServer/questionnaire"
-	userApi "studentLearningGoServer/userModel"
+	"log"
 	"time"
 )
 
@@ -12,11 +13,25 @@ func NewSql(db *gorm.DB) *Sql {
 	return &Sql{db: db}
 }
 
-func CollectData(db *gorm.DB) []Mcq.McqResult {
-	var results []Mcq.McqResult
-	db.Where("user_id = ?", 3).Preload("McqQuestionResult").Find(&results)
-	return results
-
+// Collect mcq results for a particular user
+func CollectData(db *gorm.DB) {
+	var user userApi.User
+	db.Where("user_id = ?", 3).First(&user)
+	lastMonth := time.Now().Add(-30 * (24 * time.Hour))
+	var collection []Mcq.MCQ
+	db.Select("DISTINCT(mcq_id)").Order("mcq_id").Where("created_at >= ? ", lastMonth).Find(&collection)
+	// Iterate through list of all Mcq
+	for _, mcq := range collection {
+		var results []Mcq.McqResult
+		db.Where("user_id = ? AND mcq_id = ?", user.UserId, mcq.McqId).Preload("McqQuestionResult").Find(&results)
+		if len(results) > 0 {
+			err := CheckUsersAnalysis(db, user, mcq.McqId)
+			if err != nil {
+				log.Println(err)
+			}
+			GetNewAvg(db, results)
+		}
+	}
 }
 
 func CheckUsersAnalysis(db *gorm.DB, user userApi.User, mcqID uint) error {
@@ -59,7 +74,6 @@ func CheckUsersAnalysis(db *gorm.DB, user userApi.User, mcqID uint) error {
 	return nil
 }
 
-// Analysis SINGLE MCQ EXAM
 func GetNewAvg(db *gorm.DB, M []Mcq.McqResult) WeeklyMcqAnalysis {
 	db.AutoMigrate(&WeeklyMcqAnalysis{})
 	db.AutoMigrate(&WeeklyMcqAnalysisResult{})
@@ -83,13 +97,15 @@ func GetNewAvg(db *gorm.DB, M []Mcq.McqResult) WeeklyMcqAnalysis {
 			// Normalise current average result
 			currentAvgResult := weekAvg.WeeklyMcqAnalysisResults[i].AvgResult * float64(numberOfResults-1)
 			// TODO: ADD new attribute called result value
-			thisResult := float64(result.McqQuestionResult[i].Result)
+			thisResult := float64(result.McqQuestionResult[i].Result) / float64(answer.Total)
+			fmt.Println("This Result", thisResult)
 			if currentAvgTime == 0 {
 				// If no current average time, current average time duplicated
 				currentAvgTime = answer.Time
 			}
 			newAvgTime := (currentAvgTime + answer.Time) / time.Duration(2)
 			newAvgResult := (currentAvgResult + thisResult) / float64(numberOfResults)
+			fmt.Println("NewAvg: ", currentAvgResult, thisResult, numberOfResults)
 
 			weekAvg.WeeklyMcqAnalysisResults[i].AvgTime = newAvgTime
 			weekAvg.WeeklyMcqAnalysisResults[i].AvgResult = newAvgResult
@@ -97,7 +113,36 @@ func GetNewAvg(db *gorm.DB, M []Mcq.McqResult) WeeklyMcqAnalysis {
 		}
 	}
 
-	fmt.Println("Week Avg: ", weekAvg)
+	fmt.Println("Week Avg: ", len(weekAvg.WeeklyMcqAnalysisResults))
+	for _, qustion := range weekAvg.WeeklyMcqAnalysisResults {
+		db.Model(&qustion).
+			Updates(WeeklyMcqAnalysisResult{AvgTime: qustion.AvgTime, AvgResult: qustion.AvgResult, NumberOfResults: qustion.NumberOfResults})
+	}
 	return weekAvg
-	//db.Updates(weekAvg)
+}
+
+func getWorseQuestions(db *gorm.DB) {
+	var results Mcq.McqResult
+	lastMonth := time.Now().Add(-30 * (24 * time.Hour))
+	db.Order("mcq_question_results.avg_result").Order("ASC").
+		Where("created_at >= ? AND user_Id", lastMonth).
+		Limit(5).
+		Preload("McqQuestions").Preload("McqQuestions.Answers").
+		Find(&results)
+}
+
+func getBestQuestions(db *gorm.DB) {
+	var results Mcq.McqResult
+	lastMonth := time.Now().Add(-30 * (24 * time.Hour))
+	db.Order("mcq_question_results.avg_result").Order("DESC").
+		Where("created_at >= ? AND user_Id", lastMonth).
+		Limit(5).
+		Preload("McqQuestions").Preload("McqQuestions.Answers").
+		Find(&results)
+}
+
+func GetProfile(db *gorm.DB, userId uint) []Mcq.McqResult {
+	var collection []Mcq.McqResult
+	db.Where("user_id = ?", userId).Find(&collection)
+	return collection
 }

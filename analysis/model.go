@@ -1,8 +1,8 @@
 package analysis
 
 import (
+	Mcq "github.com/Aol1234/studentLearningGoServer/questionnaire"
 	"github.com/jinzhu/gorm"
-	Mcq "studentLearningGoServer/questionnaire"
 	"time"
 )
 
