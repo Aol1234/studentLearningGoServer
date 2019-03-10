@@ -3,15 +3,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	aly "github.com/Aol1234/studentLearningGoServer/analysis"
+	dev "github.com/Aol1234/studentLearningGoServer/devRoom"
+	mcq "github.com/Aol1234/studentLearningGoServer/questionnaire"
+	authApi "github.com/Aol1234/studentLearningGoServer/studentAuth"
+	userApi "github.com/Aol1234/studentLearningGoServer/userModel"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"golang.org/x/net/context"
 	"net/http"
-	aly "studentLearningGoServer/analysis"
-	dev "studentLearningGoServer/devRoom"
-	mcq "studentLearningGoServer/questionnaire"
-	"studentLearningGoServer/studentAuth"
-	userApi "studentLearningGoServer/userModel"
 )
 
 func main() {
@@ -45,6 +45,119 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		err = json.NewEncoder(w).Encode(test)
+		if err != nil {
+			panic(err)
+		}
+		err = req.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+		return
+	})
+
+	http.HandleFunc("/publishMcq", func(w http.ResponseWriter, req *http.Request) {
+		bearer := req.Header.Get("Authorization")
+		if bearer == "" {
+			w.WriteHeader(http.StatusOK)
+			err = req.Body.Close()
+			if err != nil {
+				panic(err)
+			}
+			return
+		}
+		_, verify := userApi.VerifyUserId(bearer)
+		if verify != true {
+			w.WriteHeader(http.StatusOK)
+			err = req.Body.Close()
+			if err != nil {
+				panic(err)
+			}
+			return
+		}
+		var requestBody mcq.MCQ
+		decoder := json.NewDecoder(req.Body)
+		err := decoder.Decode(&requestBody)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(requestBody)
+		mcq.CreateMcq(db, requestBody)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		err = json.NewEncoder(w).Encode(requestBody)
+		if err != nil {
+			panic(err)
+		}
+		err = req.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+		return
+	})
+
+	http.HandleFunc("/getMcqs", func(w http.ResponseWriter, req *http.Request) {
+		bearer := req.Header.Get("Authorization")
+		if bearer == "" {
+			w.WriteHeader(http.StatusOK)
+			err = req.Body.Close()
+			if err != nil {
+				panic(err)
+			}
+			return
+		}
+		_, verify := userApi.VerifyUserId(bearer)
+		if verify != true {
+			w.WriteHeader(http.StatusOK)
+			err = req.Body.Close()
+			if err != nil {
+				panic(err)
+			}
+			return
+		}
+		Options := mcq.GrabMcqs(db)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		err = json.NewEncoder(w).Encode(Options)
+		if err != nil {
+			panic(err)
+		}
+		err = req.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+		return
+	})
+
+	http.HandleFunc("/getSelectedMcq", func(w http.ResponseWriter, req *http.Request) {
+		fmt.Println("Caught")
+		bearer := req.Header.Get("Authorization")
+		if bearer == "" {
+			w.WriteHeader(http.StatusOK)
+			err = req.Body.Close()
+			if err != nil {
+				panic(err)
+			}
+			return
+		}
+		_, verify := userApi.VerifyUserId(bearer)
+		if verify != true {
+			w.WriteHeader(http.StatusOK)
+			err = req.Body.Close()
+			if err != nil {
+				panic(err)
+			}
+			return
+		}
+		var requestBody mcq.MCQ
+		decoder := json.NewDecoder(req.Body)
+		err := decoder.Decode(&requestBody)
+		if err != nil {
+			panic(err)
+		}
+		Options := mcq.RetrieveMcq(db, requestBody.McqId)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		err = json.NewEncoder(w).Encode(Options)
 		if err != nil {
 			panic(err)
 		}
@@ -95,6 +208,39 @@ func main() {
 		return
 	})
 
+	http.HandleFunc("/getProfile", func(w http.ResponseWriter, req *http.Request) {
+		bearer := req.Header.Get("Authorization")
+		if bearer == "" {
+			w.WriteHeader(http.StatusOK)
+			err = req.Body.Close()
+			if err != nil {
+				panic(err)
+			}
+			return
+		}
+		userId, verify := userApi.VerifyUserId(bearer)
+		if verify != true {
+			w.WriteHeader(http.StatusOK)
+			err = req.Body.Close()
+			if err != nil {
+				panic(err)
+			}
+			return
+		}
+		profileInfo := aly.GetProfile(db, userId)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		err = json.NewEncoder(w).Encode(profileInfo)
+		if err != nil {
+			panic(err)
+		}
+		err = req.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+		return
+	})
+
 	http.HandleFunc("/studentAuth/SignUp", func(w http.ResponseWriter, req *http.Request) {
 		var requestBody dev.FirebaseToken
 		decoder := json.NewDecoder(req.Body)
@@ -103,7 +249,7 @@ func main() {
 			panic(err)
 		}
 		ctx := context.Background()
-		token, err := studentAuth.VerifyUser(ctx, requestBody.Idtoken)
+		token, err := authApi.VerifyUser(ctx, requestBody.Idtoken)
 		if err != nil {
 			panic(err)
 		}
@@ -121,7 +267,7 @@ func main() {
 			panic(err)
 		}
 		ctx := context.Background()
-		token, err := studentAuth.VerifyUser(ctx, requestBody.Idtoken)
+		token, err := authApi.VerifyUser(ctx, requestBody.Idtoken)
 		if err != nil {
 			panic(err)
 		}
@@ -208,20 +354,10 @@ func main() {
 
 	http.HandleFunc("/admin/collectUserData", func(w http.ResponseWriter, req *http.Request) {
 
-		// TODO: Add user authentication, select user & mcq
-		results := aly.CollectData(db) // Needs to specify user && mcq
-		fmt.Println("Testing", results[0].McqId)
-		err = aly.CheckUsersAnalysis(db, userApi.User{UserId: 3, UID: ""}, results[0].McqId)
-		if err != nil {
-			panic(err)
-		}
-		weekAvg := aly.GetNewAvg(db, results)
+		// TODO: Add user authentication, select user
+		aly.CollectData(db) // Needs to specify user && mcq
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		err = json.NewEncoder(w).Encode(weekAvg)
-		if err != nil {
-			panic(err)
-		}
 		err = req.Body.Close()
 		if err != nil {
 			panic(err)
