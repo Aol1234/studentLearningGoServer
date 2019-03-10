@@ -10,26 +10,29 @@ type Sql struct {
 }
 
 type MCQ struct {
-	McqId uint `gorm:"primary_key;AUTO_INCREMENT"`
-	// topic
-	// name
-	// desc
-	// created ect...
+	McqId        uint          `gorm:"primary_key;AUTO_INCREMENT"`
+	UserId       uint          `gorm:"foreignkey"` // Created by UserId
+	Topic        string        // Topic associated with mcq
+	Name         string        // Name of Mcq
+	Desc         string        // Description for user
+	CreatedAt    time.Time     // Created at
+	LastUsed     time.Time     // Last user to use this mcq
 	McqQuestions []McqQuestion `gorm:"foreignkey:McqId"`
 }
 
 type McqQuestion struct {
-	QId uint `gorm:"primary_key;AUTO_INCREMENT"`
-	//TODO: Check if foreign key can be used here, not issue if not
+	QId      uint `gorm:"primary_key;AUTO_INCREMENT"`
 	McqId    uint `gorm:"foreignkey:McqId"` // Mcq Id to associate with mcq test
 	Question string
 	Answers  []McqAnswer `gorm:"foreignkey:QId"`
 }
+
 type McqAnswer struct {
-	AId   uint   `gorm:"primary_key;AUTO_INCREMENT"` // Answer Id
-	QId   uint   // Question Id to associate with Question
-	Text  string `json:"text, omitempty"`  // Answer text
-	Value int    `json:"value, omitempty"` // Value of Answer // Possibility of multiple or close answers
+	AId    uint   `gorm:"primary_key;AUTO_INCREMENT"` // Answer Id
+	QId    uint   // Question Id to associate with Question
+	Text   string `json:"text, omitempty"`  // Answer text
+	Value  int    `json:"value, omitempty"` // Id of Answer // Possibility of multiple or close answers
+	Result int    // result mark of Answer
 }
 
 type McqResult struct {
