@@ -1,9 +1,9 @@
 package userModel
 
 import (
+	"github.com/Aol1234/studentLearningGoServer/sessions"
 	"github.com/jinzhu/gorm"
 	"log"
-	"studentLearningGoServer/sessions"
 )
 
 func NewSql(db *gorm.DB) *Sql {

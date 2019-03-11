@@ -1,10 +1,10 @@
 package devRoom
 
 import (
+	mcq "github.com/Aol1234/studentLearningGoServer/questionnaire"
 	"github.com/jinzhu/gorm"
 	"net/http"
 	"strings"
-	mcq "studentLearningGoServer/questionnaire"
 	"time"
 )
 
@@ -164,6 +164,6 @@ var resultTest map[string]string
 
 var Test3 = mcq.McqResult{
 	1, 1, 1, time.Now(), []mcq.McqQuestionResult{
-		{1, 1, 4, 4, time.Duration(20), 0},
+		{1, 1, 1, 4, 4, time.Duration(20), 0},
 	},
 }

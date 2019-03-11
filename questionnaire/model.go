@@ -45,6 +45,7 @@ type McqResult struct {
 
 type McqQuestionResult struct {
 	RId     uint          `gorm:"primary_key;AUTO_INCREMENT"` // Result Id
+	QId     uint          `gorm:"foreignkey:QId"`
 	McqRId  uint          // Mcq Result Id
 	Result  int           `json:"result, omitempty"`  // Answer value
 	Total   int           `json:"total, omitempty"`   // Max value
