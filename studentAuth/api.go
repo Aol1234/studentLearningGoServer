@@ -21,7 +21,7 @@ func InitializeAppWithServiceAccount(ctx context.Context) *firebase.App {
 }
 
 func VerifyUser(ctx context.Context, idToken string) (*auth.Token, error) {
-	app := InitializeAppWithServiceAccount(ctx) // FIXME: Stop initializing service account each time this function called
+	app := InitializeAppWithServiceAccount(ctx)
 	client, err := app.Auth(ctx)
 	if err != nil {
 		log.Fatalf("error getting Auth client: %v\n", err)

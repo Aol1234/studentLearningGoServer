@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-var c = cache.New(30*time.Minute, 40*time.Minute)
+var c = cache.New(240*time.Minute, 40*time.Minute)
 
 func Get(token string) (interface{}, bool) {
 	value, found := c.Get(token)

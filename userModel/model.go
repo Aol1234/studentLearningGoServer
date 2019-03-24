@@ -5,6 +5,7 @@ import "github.com/jinzhu/gorm"
 type User struct {
 	UserId uint   `gorm:"primary_key;AUTO_INCREMENT"`
 	UID    string `json:"uid"`
+	Role   string
 }
 
 type UserScoreTest struct {

@@ -1,6 +1,8 @@
 package devRoom
 
 import (
+	aly "github.com/Aol1234/studentLearningGoServer/analysis"
+	g "github.com/Aol1234/studentLearningGoServer/groups"
 	mcq "github.com/Aol1234/studentLearningGoServer/questionnaire"
 	"github.com/jinzhu/gorm"
 	"net/http"
@@ -163,7 +165,14 @@ var (
 var resultTest map[string]string
 
 var Test3 = mcq.McqResult{
-	1, 1, 1, time.Now(), []mcq.McqQuestionResult{
+	1, 1, 1, 0.55, time.Now(), []mcq.McqQuestionResult{
 		{1, 1, 1, 4, 4, time.Duration(20), 0},
 	},
+}
+
+func SetUp(db *gorm.DB) {
+	db.AutoMigrate(aly.Topic{}, aly.TopicAnalysis{}, aly.WeeklyMcqAnalysis{}, aly.WeeklyMcqAnalysisResult{},
+		aly.MonthlyMcqAnalysis{}, aly.MonthlyMcqAnalysisResult{}, aly.YearlyMcqAnalysis{}, aly.YearlyMcqAnalysisResult{},
+		aly.TotalMcqAnalysis{}, aly.TotalMcqAnalysisResult{})
+	db.AutoMigrate(g.Group{}, g.Member{}, g.GroupTopicAnalysis{})
 }

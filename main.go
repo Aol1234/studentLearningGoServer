@@ -5,6 +5,7 @@ import (
 	"fmt"
 	aly "github.com/Aol1234/studentLearningGoServer/analysis"
 	dev "github.com/Aol1234/studentLearningGoServer/devRoom"
+	g "github.com/Aol1234/studentLearningGoServer/groups"
 	mcq "github.com/Aol1234/studentLearningGoServer/questionnaire"
 	authApi "github.com/Aol1234/studentLearningGoServer/studentAuth"
 	userApi "github.com/Aol1234/studentLearningGoServer/userModel"
@@ -20,41 +21,41 @@ func main() {
 		panic("failed to connect database")
 	}
 	defer db.Close()
-
-	http.HandleFunc("/post", func(w http.ResponseWriter, req *http.Request) {
-		bearer := req.Header.Get("Authorization")
-		if bearer == "" {
+	/*
+		http.HandleFunc("/post", func(w http.ResponseWriter, req *http.Request) {
+			bearer := req.Header.Get("Authorization")
+			if bearer == "" {
+				w.WriteHeader(http.StatusOK)
+				err = req.Body.Close()
+				if err != nil {
+					panic(err)
+				}
+				return
+			}
+			_, verify := userApi.VerifyUserId(bearer)
+			if verify != true {
+				w.WriteHeader(http.StatusOK)
+				err = req.Body.Close()
+				if err != nil {
+					panic(err)
+				}
+				return
+			}
+			var testMCQ mcq.MCQ
+			test := db.Where("mcq_id = ?", 1).Preload("McqQuestions").Preload("McqQuestions.Answers").Find(&testMCQ) //db.Where("mcq_id = ?", 1).Find(&testMCQ)
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
+			err = json.NewEncoder(w).Encode(test)
+			if err != nil {
+				panic(err)
+			}
 			err = req.Body.Close()
 			if err != nil {
 				panic(err)
 			}
 			return
-		}
-		_, verify := userApi.VerifyUserId(bearer)
-		if verify != true {
-			w.WriteHeader(http.StatusOK)
-			err = req.Body.Close()
-			if err != nil {
-				panic(err)
-			}
-			return
-		}
-		var testMCQ mcq.MCQ
-		test := db.Where("mcq_id = ?", 1).Preload("McqQuestions").Preload("McqQuestions.Answers").Find(&testMCQ) //db.Where("mcq_id = ?", 1).Find(&testMCQ)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		err = json.NewEncoder(w).Encode(test)
-		if err != nil {
-			panic(err)
-		}
-		err = req.Body.Close()
-		if err != nil {
-			panic(err)
-		}
-		return
-	})
-
+		})
+	*/
 	http.HandleFunc("/publishMcq", func(w http.ResponseWriter, req *http.Request) {
 		bearer := req.Header.Get("Authorization")
 		if bearer == "" {
@@ -129,17 +130,8 @@ func main() {
 	})
 
 	http.HandleFunc("/getSelectedMcq", func(w http.ResponseWriter, req *http.Request) {
-		fmt.Println("Caught")
 		bearer := req.Header.Get("Authorization")
-		if bearer == "" {
-			w.WriteHeader(http.StatusOK)
-			err = req.Body.Close()
-			if err != nil {
-				panic(err)
-			}
-			return
-		}
-		_, verify := userApi.VerifyUserId(bearer)
+		_, verify, err := verifyUser(bearer)
 		if verify != true {
 			w.WriteHeader(http.StatusOK)
 			err = req.Body.Close()
@@ -150,7 +142,7 @@ func main() {
 		}
 		var requestBody mcq.MCQ
 		decoder := json.NewDecoder(req.Body)
-		err := decoder.Decode(&requestBody)
+		err = decoder.Decode(&requestBody)
 		if err != nil {
 			panic(err)
 		}
@@ -218,7 +210,7 @@ func main() {
 			}
 			return
 		}
-		userId, verify := userApi.VerifyUserId(bearer)
+		user, verify := userApi.VerifyUserId(bearer)
 		if verify != true {
 			w.WriteHeader(http.StatusOK)
 			err = req.Body.Close()
@@ -227,10 +219,11 @@ func main() {
 			}
 			return
 		}
-		profileInfo := aly.GetProfile(db, userId)
+		mcqQuestions, week, month, year, mcqResults, topics := aly.GetProfile(db, user)
+		profile := aly.Data{McqQuestions: mcqQuestions, Weekly: week, Monthly: month, Yearly: year, Results: mcqResults, Topics: topics}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		err = json.NewEncoder(w).Encode(profileInfo)
+		err = json.NewEncoder(w).Encode(profile)
 		if err != nil {
 			panic(err)
 		}
@@ -256,10 +249,15 @@ func main() {
 		userApi.CreateUser(db, token.UID)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		req.Body.Close()
+		err = req.Body.Close()
+		if err != nil {
+			panic(err)
+		}
 	})
 
 	http.HandleFunc("/studentAuth/Login", func(w http.ResponseWriter, req *http.Request) {
+		// TODO: Remove migrate function
+		migrate(db)
 		var requestBody dev.FirebaseToken
 		decoder := json.NewDecoder(req.Body)
 		err := decoder.Decode(&requestBody)
@@ -352,10 +350,136 @@ func main() {
 		}
 	})
 
-	http.HandleFunc("/admin/collectUserData", func(w http.ResponseWriter, req *http.Request) {
+	http.HandleFunc("/createUserGroup", func(w http.ResponseWriter, req *http.Request) {
+		bearer := req.Header.Get("Authorization")
+		if bearer == "" {
+			return
+		}
+		userId, _, err := verifyUser(bearer)
+		if err != nil {
+			panic(err)
+		}
+		decoder := json.NewDecoder(req.Body)
+		var requestBody g.Group
+		err = decoder.Decode(&requestBody)
+		if err != nil {
+			panic(err)
+		}
+		code := g.CreateGroup(db, userId, requestBody.Name, requestBody.Desc)
+		if code.IsNil() {
+			err = req.Body.Close()
+			if err != nil {
+				panic(err)
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		err = json.NewEncoder(w).Encode(code)
+		if err != nil {
+			panic(err)
+		}
+		err = req.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+	})
+	http.HandleFunc("/joinUserGroup", func(w http.ResponseWriter, req *http.Request) {
+		bearer := req.Header.Get("Authorization")
+		if bearer == "" {
+			return
+		}
+		userId, _, err := verifyUser(bearer)
+		if err != nil {
+			panic(err)
+		}
+		decoder := json.NewDecoder(req.Body)
+		var requestBody g.Group
+		err = decoder.Decode(&requestBody)
+		if err != nil {
+			panic(err)
+		}
+		err = g.JoinGroup(db, requestBody.Code, userId)
+		if err != nil {
+			err = req.Body.Close()
+			if err != nil {
+				panic(err)
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		err = req.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+	})
 
+	http.HandleFunc("/viewUserGroups", func(w http.ResponseWriter, req *http.Request) {
+		bearer := req.Header.Get("Authorization")
+		if bearer == "" {
+			return
+		}
+		userId, _, err := verifyUser(bearer)
+		if err != nil {
+			panic(err)
+		}
+		group, groupAnalysis, err := g.GetGroups(db, userId)
+		if err != nil {
+			err = req.Body.Close()
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		err = json.NewEncoder(w).Encode(g.Data{Groups: group, GroupTopicAnalysis: groupAnalysis})
+		if err != nil {
+			panic(err)
+		}
+		err = req.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+	})
+	////////////////// ADMIN METHODS ///////////////////////
+
+	http.HandleFunc("/admin/collectUserData", func(w http.ResponseWriter, req *http.Request) {
+		dev.SetUp(db)
 		// TODO: Add user authentication, select user
-		aly.CollectData(db) // Needs to specify user && mcq
+		var users []userApi.User
+		db.Where("role <> ?", "ADMIN").Find(&users)
+		for _, user := range users {
+			aly.CollectData(db, user.UserId, "Week") // Needs to specify user && mcq
+		}
+		aly.AnalyseGroups(db)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		err = req.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+	})
+	http.HandleFunc("/admin/collectUserDataYear", func(w http.ResponseWriter, req *http.Request) {
+		// TODO: Add user authentication, select user
+		var users []userApi.User
+		db.Where("role <> ?", "ADMIN").Find(&users)
+		for _, user := range users {
+			aly.CollectData(db, user.UserId, "Year") // Needs to specify user && mcq
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		err = req.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+	})
+	http.HandleFunc("/admin/collectUserDataMonth", func(w http.ResponseWriter, req *http.Request) {
+		// TODO: Add user authentication, select user
+		var users []userApi.User
+		db.Where("role <> ?", "ADMIN").Find(&users)
+		for _, user := range users {
+			aly.CollectData(db, user.UserId, "Month") // Needs to specify user && mcq
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		err = req.Body.Close()
@@ -367,4 +491,26 @@ func main() {
 	if err := http.ListenAndServe(":8000", nil); err != nil {
 		panic(err)
 	}
+}
+
+func verifyUser(bearer string) (userId uint, verify bool, err error) {
+	if bearer == "" {
+		return 0, false, nil
+	}
+	userId, verify = userApi.VerifyUserId(bearer)
+	if verify != true {
+		return 0, false, nil
+	}
+	return userId, true, nil
+}
+
+func migrate(db *gorm.DB) {
+	db.AutoMigrate(&userApi.User{}, &userApi.UserPreference{})
+	db.AutoMigrate(&aly.WeeklyMcqAnalysis{}, &aly.WeeklyMcqAnalysisResult{},
+		&aly.MonthlyMcqAnalysis{}, &aly.MonthlyMcqAnalysisResult{},
+		&aly.YearlyMcqAnalysis{}, &aly.YearlyMcqAnalysisResult{},
+		&aly.TotalMcqAnalysis{}, &aly.TotalMcqAnalysisResult{})
+	db.AutoMigrate(&mcq.MCQ{}, &mcq.McqQuestion{}, &mcq.McqAnswer{},
+		&mcq.McqResult{}, &mcq.McqQuestionResult{})
+	db.AutoMigrate(&g.Group{}, &g.GroupTopicAnalysis{}, &g.Member{})
 }

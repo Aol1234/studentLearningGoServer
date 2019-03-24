@@ -12,6 +12,14 @@ func NewSql(db *gorm.DB) *Sql {
 func StoreResult(db *gorm.DB, results McqResult) {
 	db.AutoMigrate(&McqResult{})
 	db.AutoMigrate(&McqQuestionResult{})
+	var questions []McqQuestion
+	db.Where("mcq_id = ?", results.McqId).
+		Find(&questions)
+	for index, question := range questions {
+		results.McqQuestionResult[index].QId = question.QId
+	}
+	average := getAverageScore(results)
+	results.AverageResult = average
 	results.CreatedAt = time.Now()
 	db.Create(&results)
 }
@@ -32,6 +40,15 @@ func GrabMcqs(db *gorm.DB) []MCQ {
 func RetrieveMcq(db *gorm.DB, mcqId uint) MCQ {
 	var Mcq MCQ
 	db.Where("mcq_id = ?", mcqId).Preload("McqQuestions").Preload("McqQuestions.Answers").First(&Mcq)
-	// TODO: Update when mcq last used
+	db.Table("MCQ").Update("LastUsed", time.Now()) // TODO: Update when mcq last used
 	return Mcq
+}
+
+func getAverageScore(results McqResult) float64 {
+	var cumulative float64
+	for _, result := range results.McqQuestionResult {
+		cumulative += float64(result.Result) / float64(result.Total)
+	}
+	average := cumulative / float64(len(results.McqQuestionResult))
+	return average
 }

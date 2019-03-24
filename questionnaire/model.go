@@ -36,10 +36,11 @@ type McqAnswer struct {
 }
 
 type McqResult struct {
-	McqRId            uint                `gorm:"primary_key;AUTO_INCREMENT"` // Result Id
-	McqId             uint                `gorm:"foreignkey:McqId"`           // Mcq Id to associate with mcq test
-	UserId            uint                `gorm:"foreignkey:UserId"`          // User Id to associate with user profile
-	CreatedAt         time.Time           `json:"created_at, omitempty"`      // Time MCQ Test finished
+	McqRId            uint `gorm:"primary_key;AUTO_INCREMENT"` // Result Id
+	McqId             uint `gorm:"foreignkey:McqId"`           // Mcq Id to associate with mcq test
+	UserId            uint `gorm:"foreignkey:UserId"`          // User Id to associate with user profile
+	AverageResult     float64
+	CreatedAt         time.Time           // Time MCQ Test finished
 	McqQuestionResult []McqQuestionResult `gorm:"foreignkey:McqRId"`
 }
 
