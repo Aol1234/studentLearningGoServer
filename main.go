@@ -21,41 +21,7 @@ func main() {
 		panic("failed to connect database")
 	}
 	defer db.Close()
-	/*
-		http.HandleFunc("/post", func(w http.ResponseWriter, req *http.Request) {
-			bearer := req.Header.Get("Authorization")
-			if bearer == "" {
-				w.WriteHeader(http.StatusOK)
-				err = req.Body.Close()
-				if err != nil {
-					panic(err)
-				}
-				return
-			}
-			_, verify := userApi.VerifyUserId(bearer)
-			if verify != true {
-				w.WriteHeader(http.StatusOK)
-				err = req.Body.Close()
-				if err != nil {
-					panic(err)
-				}
-				return
-			}
-			var testMCQ mcq.MCQ
-			test := db.Where("mcq_id = ?", 1).Preload("McqQuestions").Preload("McqQuestions.Answers").Find(&testMCQ) //db.Where("mcq_id = ?", 1).Find(&testMCQ)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			err = json.NewEncoder(w).Encode(test)
-			if err != nil {
-				panic(err)
-			}
-			err = req.Body.Close()
-			if err != nil {
-				panic(err)
-			}
-			return
-		})
-	*/
+
 	http.HandleFunc("/publishMcq", func(w http.ResponseWriter, req *http.Request) {
 		bearer := req.Header.Get("Authorization")
 		if bearer == "" {
@@ -383,6 +349,7 @@ func main() {
 			panic(err)
 		}
 	})
+
 	http.HandleFunc("/joinUserGroup", func(w http.ResponseWriter, req *http.Request) {
 		bearer := req.Header.Get("Authorization")
 		if bearer == "" {
@@ -441,10 +408,9 @@ func main() {
 			panic(err)
 		}
 	})
-	////////////////// ADMIN METHODS ///////////////////////
 
+	////////////////// ADMIN METHODS ///////////////////////
 	http.HandleFunc("/admin/collectUserData", func(w http.ResponseWriter, req *http.Request) {
-		dev.SetUp(db)
 		// TODO: Add user authentication, select user
 		var users []userApi.User
 		db.Where("role <> ?", "ADMIN").Find(&users)
