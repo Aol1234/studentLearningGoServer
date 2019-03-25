@@ -98,6 +98,7 @@ func main() {
 	})
 
 	http.HandleFunc("/getSelectedMcq", func(w http.ResponseWriter, req *http.Request) {
+		setupResponse(&w, req)
 		bearer := req.Header.Get("Authorization")
 		_, verify, err := verifyUser(bearer)
 		if verify != true {
@@ -129,6 +130,7 @@ func main() {
 	})
 
 	http.HandleFunc("/:ID/:mcqID/result", func(w http.ResponseWriter, req *http.Request) {
+		setupResponse(&w, req)
 		bearer := req.Header.Get("Authorization")
 		if bearer == "" {
 			w.WriteHeader(http.StatusOK)
@@ -169,6 +171,7 @@ func main() {
 	})
 
 	http.HandleFunc("/getProfile", func(w http.ResponseWriter, req *http.Request) {
+		setupResponse(&w, req)
 		bearer := req.Header.Get("Authorization")
 		if bearer == "" {
 			w.WriteHeader(http.StatusOK)
@@ -415,6 +418,8 @@ func main() {
 
 	////////////////// ADMIN METHODS ///////////////////////
 	http.HandleFunc("/admin/collectUserData", func(w http.ResponseWriter, req *http.Request) {
+		setupResponse(&w, req)
+
 		// TODO: Add user authentication, select user
 		var users []userApi.User
 		db.Where("role <> ?", "ADMIN").Find(&users)
@@ -430,6 +435,8 @@ func main() {
 		}
 	})
 	http.HandleFunc("/admin/collectUserDataYear", func(w http.ResponseWriter, req *http.Request) {
+		setupResponse(&w, req)
+
 		// TODO: Add user authentication, select user
 		var users []userApi.User
 		db.Where("role <> ?", "ADMIN").Find(&users)
@@ -444,6 +451,8 @@ func main() {
 		}
 	})
 	http.HandleFunc("/admin/collectUserDataMonth", func(w http.ResponseWriter, req *http.Request) {
+		setupResponse(&w, req)
+
 		// TODO: Add user authentication, select user
 		var users []userApi.User
 		db.Where("role <> ?", "ADMIN").Find(&users)
