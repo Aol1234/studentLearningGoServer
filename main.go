@@ -208,7 +208,6 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(requestBody)
 		ctx := context.Background()
 		token, err := authApi.VerifyUser(ctx, requestBody.Idtoken)
 		if err != nil {
