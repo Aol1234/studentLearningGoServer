@@ -17,10 +17,11 @@ func CreateUser(db *gorm.DB, UID string) {
 	db.AutoMigrate(&UserScoreTest{})
 	fmt.Println("here")
 	db.Create(User{UID: UID})
+	fmt.Println("AfterCreate")
 	var user User
 	fmt.Println("test", UID)
 
-	db.Where("UID = ?", UID).First(&user)
+	db.Where("uid = ?", UID).First(&user)
 	fmt.Println(user)
 }
 
