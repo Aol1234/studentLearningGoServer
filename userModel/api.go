@@ -15,6 +15,7 @@ func CreateUser(db *gorm.DB, UID string) {
 	db.AutoMigrate(&User{})
 	db.AutoMigrate(&UserPreference{})
 	db.AutoMigrate(&UserScoreTest{})
+	fmt.Println("here")
 	db.Create(User{UID: UID})
 	var user User
 	fmt.Println("test", UID)
