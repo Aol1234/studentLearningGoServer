@@ -230,6 +230,7 @@ func main() {
 
 	http.HandleFunc("/studentAuth/Login", func(w http.ResponseWriter, req *http.Request) {
 		setupResponse(&w, req)
+		migrate(db)
 		var requestBody dev.FirebaseToken
 		decoder := json.NewDecoder(req.Body)
 		err := decoder.Decode(&requestBody)
@@ -508,7 +509,8 @@ func migrate(db *gorm.DB) {
 		&aly.TotalMcqAnalysis{}, &aly.TotalMcqAnalysisResult{})
 	db.AutoMigrate(&mcq.MCQ{}, &mcq.McqQuestion{}, &mcq.McqAnswer{},
 		&mcq.McqResult{}, &mcq.McqQuestionResult{})
-	db.AutoMigrate(&g.Group{}, &g.GroupTopicAnalysis{}, &g.Member{})
+	db.AutoMigrate(&g.Group{}, &g.GroupTopicAnalysis{}, &g.Member{},
+		&aly.TopicAnalysis{}, &aly.TopicAnalysis{})
 }
 
 func setupResponse(w *http.ResponseWriter, req *http.Request) {
