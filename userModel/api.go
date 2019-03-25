@@ -61,6 +61,7 @@ func VerifyUserId(bearerToken string) (uint, bool) {
 }
 
 func SetCookie(user User, bearerToken string) bool {
+	fmt.Println("bearer Token ", bearerToken)
 	if bearerToken == "" {
 		return false
 	}
