@@ -257,6 +257,8 @@ func main() {
 	})
 
 	http.HandleFunc("/updateUserPreferences", func(w http.ResponseWriter, req *http.Request) {
+		setupResponse(&w, req)
+
 		bearer := req.Header.Get("Authorization")
 		if bearer == "" {
 			//w.WriteHeader(http.StatusBadRequest)
@@ -288,6 +290,8 @@ func main() {
 	})
 
 	http.HandleFunc("/getUserPreferences", func(w http.ResponseWriter, req *http.Request) {
+		setupResponse(&w, req)
+
 		bearer := req.Header.Get("Authorization")
 		if bearer == "" {
 			w.WriteHeader(http.StatusOK)
@@ -324,6 +328,8 @@ func main() {
 	})
 
 	http.HandleFunc("/createUserGroup", func(w http.ResponseWriter, req *http.Request) {
+		setupResponse(&w, req)
+
 		bearer := req.Header.Get("Authorization")
 		if bearer == "" {
 			return
@@ -358,6 +364,8 @@ func main() {
 	})
 
 	http.HandleFunc("/joinUserGroup", func(w http.ResponseWriter, req *http.Request) {
+		setupResponse(&w, req)
+
 		bearer := req.Header.Get("Authorization")
 		if bearer == "" {
 			return
@@ -388,6 +396,8 @@ func main() {
 	})
 
 	http.HandleFunc("/viewUserGroups", func(w http.ResponseWriter, req *http.Request) {
+		setupResponse(&w, req)
+
 		bearer := req.Header.Get("Authorization")
 		if bearer == "" {
 			return
