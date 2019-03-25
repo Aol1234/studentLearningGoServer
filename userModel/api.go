@@ -1,6 +1,7 @@
 package userModel
 
 import (
+	"fmt"
 	"github.com/Aol1234/studentLearningGoServer/sessions"
 	"github.com/jinzhu/gorm"
 	"log"
@@ -15,14 +16,11 @@ func CreateUser(db *gorm.DB, UID string) {
 	db.AutoMigrate(&UserPreference{})
 	db.AutoMigrate(&UserScoreTest{})
 	db.Create(User{UID: UID})
-	// get Id
-	//id := User{}
 	var user User
-	//var userM []UserScoreTest
+	fmt.Println("test")
+
 	db.Where("UID = ?", UID).First(&user)
-	//db.Create(&UserScoreTest{UserId:user.UserId, Value1:"1", Value2:"2"})
-	//db.Where("user_Id = ?", user.UserId).Find(&userM)
-	//return userM
+	fmt.Println(user)
 }
 
 func LoginVerification(db *gorm.DB, UID string) User {
