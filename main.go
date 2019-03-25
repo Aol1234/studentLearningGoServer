@@ -454,12 +454,13 @@ func main() {
 		}
 	})
 
-	if err := http.ListenAndServe(":8000", nil); err != nil {
+	if err := http.ListenAndServe(getPort(), nil); err != nil {
 		panic(err)
 	}
 }
 func getPort() string {
 	p := os.Getenv("PORT")
+	fmt.Println("port", p)
 	if p != "" {
 		return ":" + p
 	}
