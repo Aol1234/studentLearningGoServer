@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	db, err := gorm.Open("mysql", "o4fg1odluxwsx0cl:go6oeb46hzn6hccr@tcp(l6slz5o3eduzatkw.cbetxkdyhwsb.us-east-1.rds.amazonaws.com)/ltq4ywpuwsubopkz") //root:pass@/StudentLearning?charset=utf8&parseTime=True&loc=Local")
+	db, err := gorm.Open("mysql", "o4fg1odluxwsx0cl:go6oeb46hzn6hccr@tcp(l6slz5o3eduzatkw.cbetxkdyhwsb.us-east-1.rds.amazonaws.com)/ltq4ywpuwsubopkz?charset=utf8&parseTime=True") //root:pass@/StudentLearning?charset=utf8&parseTime=True&loc=Local")
 	if err != nil {
 		panic("failed to connect database")
 	}

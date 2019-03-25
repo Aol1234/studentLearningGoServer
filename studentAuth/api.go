@@ -10,13 +10,11 @@ import (
 )
 
 func InitializeAppWithServiceAccount(ctx context.Context) *firebase.App {
-	// [START initialize_app_service_account_golang]
 	opt := option.WithCredentialsFile("credential.json")
 	app, err := firebase.NewApp(ctx, nil, opt)
 	if err != nil {
 		log.Fatalf("error initializing app: %v\n", err)
 	}
-	// [END initialize_app_service_account_golang]
 	return app
 }
 
