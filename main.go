@@ -454,7 +454,7 @@ func main() {
 		}
 	})
 
-	if err := http.ListenAndServe(getPort(), nil); err != nil {
+	if err := http.ListenAndServe(":8000", nil); err != nil {
 		panic(err)
 	}
 }
