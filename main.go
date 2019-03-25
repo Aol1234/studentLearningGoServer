@@ -24,6 +24,7 @@ func main() {
 	defer db.Close()
 
 	http.HandleFunc("/publishMcq", func(w http.ResponseWriter, req *http.Request) {
+		setupResponse(&w, req)
 		bearer := req.Header.Get("Authorization")
 		if bearer == "" {
 			w.WriteHeader(http.StatusOK)

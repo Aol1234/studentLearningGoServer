@@ -29,9 +29,8 @@ func CreateGroup(db *gorm.DB, userId uint, name string, desc string) xid.ID {
 func JoinGroup(db *gorm.DB, code string, userID uint) error {
 	var group Group
 	joinDate := time.Now()
-	db.Where("code = ?", code).First(&group)
+	db.Where("code = ? AND creator_id <> ?", code, userID).First(&group)
 	if group.GroupId == 0 {
-		fmt.Println("Group doesn't exist")
 		return nil
 	}
 	db.Create(&Member{UserId: 4, JoinedAt: joinDate, GroupId: group.GroupId})
@@ -45,14 +44,12 @@ func GetGroups(db *gorm.DB, userID uint) (groups []Group, groupsAnalysis []Group
 	if err != nil {
 		return []Group{}, []GroupTopicAnalysis{}, err
 	}
-	fmt.Println("Membership", membership)
 	for _, chosenGroup := range membership {
 		var groupAnalysis GroupTopicAnalysis
 		db.Where("group_id = ?", chosenGroup.GroupId).First(&groupAnalysis)
 		groupsAnalysis = append(groupsAnalysis, groupAnalysis)
 		var group Group
 		db.Where("group_id = ?", chosenGroup.GroupId).First(&group)
-		fmt.Println("Group", chosenGroup.GroupId, group)
 		groups = append(groups, group)
 	}
 	return groups, groupsAnalysis, nil
