@@ -64,6 +64,7 @@ func main() {
 	})
 
 	http.HandleFunc("/getMcqs", func(w http.ResponseWriter, req *http.Request) {
+		setupResponse(&w, req)
 		bearer := req.Header.Get("Authorization")
 		if bearer == "" {
 			w.WriteHeader(http.StatusOK)
@@ -202,6 +203,8 @@ func main() {
 	})
 
 	http.HandleFunc("/studentAuth/SignUp", func(w http.ResponseWriter, req *http.Request) {
+		setupResponse(&w, req)
+
 		var requestBody dev.FirebaseToken
 		decoder := json.NewDecoder(req.Body)
 		err := decoder.Decode(&requestBody)
@@ -223,6 +226,7 @@ func main() {
 	})
 
 	http.HandleFunc("/studentAuth/Login", func(w http.ResponseWriter, req *http.Request) {
+		setupResponse(&w, req)
 		var requestBody dev.FirebaseToken
 		decoder := json.NewDecoder(req.Body)
 		err := decoder.Decode(&requestBody)
@@ -486,4 +490,10 @@ func migrate(db *gorm.DB) {
 	db.AutoMigrate(&mcq.MCQ{}, &mcq.McqQuestion{}, &mcq.McqAnswer{},
 		&mcq.McqResult{}, &mcq.McqQuestionResult{})
 	db.AutoMigrate(&g.Group{}, &g.GroupTopicAnalysis{}, &g.Member{})
+}
+
+func setupResponse(w *http.ResponseWriter, req *http.Request) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 }
