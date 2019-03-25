@@ -510,7 +510,7 @@ func migrate(db *gorm.DB) {
 	db.AutoMigrate(&mcq.MCQ{}, &mcq.McqQuestion{}, &mcq.McqAnswer{},
 		&mcq.McqResult{}, &mcq.McqQuestionResult{})
 	db.AutoMigrate(&g.Group{}, &g.GroupTopicAnalysis{}, &g.Member{},
-		&aly.TopicAnalysis{}, &aly.TopicAnalysis{})
+		&aly.Topic{}, &aly.TopicAnalysis{})
 }
 
 func setupResponse(w *http.ResponseWriter, req *http.Request) {
