@@ -14,15 +14,10 @@ func NewSql(db *gorm.DB) *Sql {
 func CreateUser(db *gorm.DB, UID string) {
 	db.AutoMigrate(&User{})
 	db.AutoMigrate(&UserPreference{})
-	db.AutoMigrate(&UserScoreTest{})
-	fmt.Println("here")
 	db.Create(&User{UID: UID})
-	fmt.Println("AfterCreate")
 	var user User
-	fmt.Println("test", UID)
-
 	db.Where("uid = ?", UID).First(&user)
-	fmt.Println(user)
+	db.Create(&UserPreference{UserId: user.UserId, GraphInfoModal: 0})
 }
 
 func LoginVerification(db *gorm.DB, UID string) User {
