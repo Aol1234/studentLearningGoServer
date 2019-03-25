@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	db, err := gorm.Open("mysql", "root:pass@/StudentLearning?charset=utf8&parseTime=True&loc=Local")
+	db, err := gorm.Open("mysql", "b3f5d9357bb4e5:f44dcaba@tcp(us-cdbr-iron-east-03.cleardb.net/heroku_5bab83dbd53000a)") //root:pass@/StudentLearning?charset=utf8&parseTime=True&loc=Local")
 	if err != nil {
 		panic("failed to connect database")
 	}
