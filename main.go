@@ -13,6 +13,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"golang.org/x/net/context"
 	"net/http"
+	"os"
 )
 
 func main() {
@@ -454,11 +455,17 @@ func main() {
 		}
 	})
 
-	if err := http.ListenAndServe(":8000", nil); err != nil {
+	if err := http.ListenAndServe(getPort(), nil); err != nil {
 		panic(err)
 	}
 }
-
+func getPort() string {
+	p := os.Getenv("PORT")
+	if p != "" {
+		return ":" + p
+	}
+	return ":8000"
+}
 func verifyUser(bearer string) (userId uint, verify bool, err error) {
 	if bearer == "" {
 		return 0, false, nil

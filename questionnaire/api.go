@@ -38,9 +38,10 @@ func GrabMcqs(db *gorm.DB) []MCQ {
 }
 
 func RetrieveMcq(db *gorm.DB, mcqId uint) MCQ {
+	db.AutoMigrate(&MCQ{})
 	var Mcq MCQ
 	db.Where("mcq_id = ?", mcqId).Preload("McqQuestions").Preload("McqQuestions.Answers").First(&Mcq)
-	db.Table("MCQ").Update("LastUsed", time.Now()) // TODO: Update when mcq last used
+	db.Table("mcqs").Update("last_used", time.Now()) // TODO: Update when mcq last used
 	return Mcq
 }
 
