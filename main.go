@@ -223,14 +223,13 @@ func main() {
 	})
 
 	http.HandleFunc("/studentAuth/Login", func(w http.ResponseWriter, req *http.Request) {
-		// TODO: Remove migrate function
-		migrate(db)
 		var requestBody dev.FirebaseToken
 		decoder := json.NewDecoder(req.Body)
 		err := decoder.Decode(&requestBody)
 		if err != nil {
 			panic(err)
 		}
+		fmt.Println(requestBody.Idtoken)
 		ctx := context.Background()
 		token, err := authApi.VerifyUser(ctx, requestBody.Idtoken)
 		if err != nil {
