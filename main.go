@@ -462,7 +462,7 @@ func getPort() string {
 	p := os.Getenv("PORT")
 	fmt.Println("port", p)
 	if p != "" {
-		return ":8000" //":" + p
+		return ":" + p
 	}
 	return ":8000"
 }
