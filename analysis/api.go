@@ -39,7 +39,7 @@ func CollectData(db *gorm.DB, userId uint, timePeriod string) {
 	if timePeriod == "Week" {
 		for _, mcq := range collection {
 			var results []Mcq.McqResult // Collect all mcq results relating to this mcq
-			db.Where("user_id = ? AND mcq_id = ?", user.UserId, mcq.McqId).Preload("McqQuestionResult").Find(&results)
+			db.Where("user_id = ? AND mcq_id = ?", user.UserId, mcq.McqId).Preload("mcq_question_results").Find(&results)
 			if len(results) > 0 { // Check if results not empty
 				err := checkTodayAnalysis(db, user, mcq)
 				if err != nil {
