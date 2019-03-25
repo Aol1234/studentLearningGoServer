@@ -155,7 +155,7 @@ func checkTodayAnalysis(db *gorm.DB, user userApi.User, mcq Mcq.MCQ) error {
 	var mcqData Mcq.MCQ
 	db.Where("mcq_id = ?", mcq.McqId).First(&mcqData)
 	var topicInfo Topic
-	db.Where("TopicName = ?", mcqData.Topic).First(&topicInfo)
+	db.Where("topic_name = ?", mcqData.Topic).First(&topicInfo)
 	// Check user has weekly Analysis
 	var QId []Mcq.McqQuestion
 	db.Select("q_id").Where("mcq_id	= ?", mcq.McqId).Find(&QId)
