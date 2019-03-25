@@ -17,7 +17,7 @@ func CreateUser(db *gorm.DB, UID string) {
 	db.AutoMigrate(&UserScoreTest{})
 	db.Create(User{UID: UID})
 	var user User
-	fmt.Println("test")
+	fmt.Println("test", UID)
 
 	db.Where("UID = ?", UID).First(&user)
 	fmt.Println(user)
@@ -31,10 +31,6 @@ func LoginVerification(db *gorm.DB, UID string) User {
 	db.AutoMigrate(&User{})
 	var user User
 	db.Where("UID = ?", UID).First(&user)
-	////////////////////////////////////////////////////
-	//db.AutoMigrate(&UserPreference{})
-	//db.Create(UserPreference{UserId:user.UserId})
-	///////////////////////////////////////////////////////
 	return user
 }
 
