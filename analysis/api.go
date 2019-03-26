@@ -172,7 +172,7 @@ func checkTodayAnalysis(db *gorm.DB, user userApi.User, mcq Mcq.MCQ) error {
 	db.Where("topic_name = ?", mcqData.Topic).First(&topicInfo)
 	// Check user has weekly Analysis
 	var QId []Mcq.McqQuestion
-	db.Select("q_id").Where("mcq_id	= ?", mcq.McqId).Find(&QId)
+	db.Select("q_id").Where("mcq_id = ?", mcq.McqId).Find(&QId)
 	var WeeklyAnalysis WeeklyMcqAnalysis
 	err := db.Where("user_id = ? AND mcq_id = ?", user.UserId, mcq.McqId).First(&WeeklyAnalysis).Error
 	if err != nil || WeeklyAnalysis.McqId == 0 {
@@ -221,7 +221,7 @@ func checkMonthlyAnalysis(db *gorm.DB, user userApi.User, distinctMcq Mcq.MCQ) e
 		db.Where("user_id = ? AND mcq_id = ?", user.UserId, distinctMcq.McqId).First(&MonthlyAnalysis)
 	}
 	var Week WeeklyMcqAnalysis
-	db.Where("mcq_id = ? AND user_id = ?").First(&Week)
+	db.Where("mcq_id = ? AND user_id = ?", distinctMcq.McqId, user.UserId).First(&Week)
 	// Collect weekly analysis of this mcq
 	var weeklyQuestionAnalysis []WeeklyMcqAnalysisResult
 	db.Where("weekly_r_ana = ?", Week.WeeklyRAna).Find(&weeklyQuestionAnalysis)
