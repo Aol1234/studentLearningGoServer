@@ -113,7 +113,7 @@ func GetProfile(db *gorm.DB, userId uint) ([]Mcq.MCQ, []WeeklyMcqAnalysis, []Mon
 	db.Where("user_id = ?", userId).Find(&topics)
 	var collectionQuestions []Mcq.MCQ
 	db.Where("mcq_id IN (SELECT mcq_id FROM ltq4ywpuwsubopkz.mcq_results WHERE user_id = ?)", userId).
-		Preload("Mcq.McqQuestions").
+		Preload("McqQuestions").
 		Find(&collectionQuestions)
 	var collectionWeek []WeeklyMcqAnalysis
 	db.Where("user_id = ?", userId).
@@ -140,7 +140,7 @@ func GetProfile(db *gorm.DB, userId uint) ([]Mcq.MCQ, []WeeklyMcqAnalysis, []Mon
 			Find(&temp)
 		mcqResults = append(mcqResults, temp)
 	}
-	fmt.Println("Results", mcqResults)
+	fmt.Println("Results", collectionWeek)
 	return collectionQuestions, collectionWeek, collectionMonth, collectionYearly, mcqResults, topics
 }
 
