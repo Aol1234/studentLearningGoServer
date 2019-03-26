@@ -43,9 +43,11 @@ func GetGroups(db *gorm.DB, userID uint) (groups []Group, groupsAnalysis []Group
 		return []Group{}, []GroupTopicAnalysis{}, err
 	}
 	for _, chosenGroup := range membership {
-		var groupAnalysis GroupTopicAnalysis
-		db.Where("group_id = ?", chosenGroup.GroupId).First(&groupAnalysis)
-		groupsAnalysis = append(groupsAnalysis, groupAnalysis)
+		var groupAnalysis []GroupTopicAnalysis
+		db.Where("group_id = ?", chosenGroup.GroupId).Find(&groupAnalysis)
+		for _, analysis := range groupAnalysis {
+			groupsAnalysis = append(groupsAnalysis, analysis)
+		}
 		var group Group
 		db.Where("group_id = ?", chosenGroup.GroupId).First(&group)
 		groups = append(groups, group)
