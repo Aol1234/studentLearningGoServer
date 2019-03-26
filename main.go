@@ -49,7 +49,6 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(requestBody)
 		mcq.CreateMcq(db, requestBody)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -238,7 +237,6 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(requestBody.Idtoken)
 		ctx := context.Background()
 		token, err := authApi.VerifyUser(ctx, requestBody.Idtoken)
 		if err != nil {
@@ -434,7 +432,7 @@ func main() {
 
 		// TODO: Add user authentication, select user
 		var users []userApi.User
-		db.Where("role <> ?", "ADMIN").Find(&users)
+		db.Where("role <> ?", "ADMIN").Find(&users) // TODO: Add activity column to user, reduce search to time period
 		for _, user := range users {
 			aly.CollectData(db, user.UserId, "Week") // Needs to specify user && mcq
 		}

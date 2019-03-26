@@ -106,6 +106,7 @@ type TotalMcqAnalysisResult struct {
 	AvgConfidence   float64       // Avg level of confidence 1 change + 5sec  = v.h >5 = v.l
 }
 
+// Struct used to return profile data to user
 type Data struct {
 	McqQuestions []mcq.MCQ
 	Weekly       []WeeklyMcqAnalysis
@@ -115,6 +116,7 @@ type Data struct {
 	Topics       []TopicAnalysis
 }
 
+// Single topic associated with topic, currently only possible to create new topics through sql
 type Topic struct {
 	TopicId   uint `gorm:"primary_key;AUTO_INCREMENT"` // Topic Id
 	TopicName string

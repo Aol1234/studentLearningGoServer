@@ -46,7 +46,7 @@ func CollectData(db *gorm.DB, userId uint, timePeriod string) {
 					log.Println(err)
 				}
 				getWeeklyAnalysis(db, results)
-				getLastWeeksWorseQuestions(db, mcq.McqId)
+				// getLastWeeksWorseQuestions(db, mcq.McqId)
 			}
 		}
 		getTopicAnalysis(db, userId)
@@ -77,35 +77,6 @@ func CollectData(db *gorm.DB, userId uint, timePeriod string) {
 			}
 		}
 	}
-}
-func getLastWeeksWorseQuestions(db *gorm.DB, McqId uint) map[string]WeeklyMcqAnalysisResult {
-	QuestionAndResult := make(map[string]WeeklyMcqAnalysisResult)
-	var results []WeeklyMcqAnalysisResult
-	db.
-		Order("avg_result ASC").
-		Where("mcq_id = ?", McqId).
-		Limit(5).
-		Find(&results)
-	var questions []Mcq.McqQuestion
-	for _, qid := range results {
-		var question Mcq.McqQuestion
-		db.Where("mcq_id = ? AND q_id = ?", McqId, qid.QId).First(&question)
-		questions = append(questions, question)
-		QuestionAndResult[question.Question] = qid
-	}
-	fmt.Println("Worse Results ", QuestionAndResult)
-	return QuestionAndResult
-
-}
-
-func getBestQuestions(db *gorm.DB) {
-	var results Mcq.McqResult
-	lastMonth := time.Now().Add(-30 * (24 * time.Hour))
-	db.Order("mcq_question_results.avg_result").Order("DESC").
-		Where("created_at >= ? AND user_Id", lastMonth).
-		Limit(5).
-		Preload("McqQuestions").Preload("McqQuestions.Answers").
-		Find(&results)
 }
 
 func GetProfile(db *gorm.DB, userId uint) ([]Mcq.MCQ, []WeeklyMcqAnalysis, []MonthlyMcqAnalysis, []YearlyMcqAnalysis, [][]Mcq.McqResult, []TopicAnalysis) {
@@ -144,14 +115,57 @@ func GetProfile(db *gorm.DB, userId uint) ([]Mcq.MCQ, []WeeklyMcqAnalysis, []Mon
 	return collectionQuestions, collectionWeek, collectionMonth, collectionYearly, mcqResults, topics
 }
 
+func AnalyseGroups(db *gorm.DB) { // Analyse all groups
+	var groups []g.Group
+	db.Find(&groups)
+	fmt.Println("Groups", groups)
+	for _, group := range groups { // For each Group
+		var distinctTopicAnalysis []TopicAnalysis
+		db.
+			Order("topic_id").
+			Where("user_id = ?", group.CreatorId).
+			Find(&distinctTopicAnalysis) // Get all topics of creator
+		fmt.Println("Topics", distinctTopicAnalysis)
+		var members []g.Member
+		db.Where("group_id = ?", group.GroupId).
+			Find(&members) // Get all members of group
+		fmt.Println("Members", members)
+		for _, topic := range distinctTopicAnalysis {
+			var cumulative float64
+			var count float64
+			for _, member := range members { // For each member
+				var chosen TopicAnalysis
+				db.Where("user_id = ? AND topic_id = ?", member.UserId, topic.TopicId).
+					First(&chosen) // Get topic analysis for member for selected topic
+				fmt.Println("Chosen", chosen)
+				if chosen.TopicId != 0 {
+					cumulative += chosen.AvgResult
+					count += 1
+				}
+			}
+			avgResult := cumulative / count
+			var groupAnalysis g.GroupTopicAnalysis
+			db.Where("group_id = ? AND topic_id = ?", group.GroupId, topic.TopicId).
+				First(&groupAnalysis)
+			fmt.Println("Analysis", groupAnalysis)
+			if groupAnalysis.GTopId != 0 {
+			} else {
+				db.Create(&g.GroupTopicAnalysis{GroupId: group.GroupId, TopicId: topic.TopicId, TopicName: topic.TopicName, CreatedAt: time.Now(), AvgResult: avgResult})
+			}
+		}
+	}
+}
+
 //////////  Private Methods  //////////
 
 func collectDistinctMcq(db *gorm.DB, timePeriod time.Time) (collection []Mcq.MCQ) {
+	// Collects all uniques ids associated with each mcq
 	db.Select("DISTINCT(mcq_id)").Order("mcq_id").Where("created_at >= ? ", timePeriod).Find(&collection)
 	return collection
 }
 
 func checkTodayAnalysis(db *gorm.DB, user userApi.User, mcq Mcq.MCQ) error {
+	fmt.Print("HERE! ", user.UserId, mcq.Name)
 	var mcqData Mcq.MCQ
 	db.Where("mcq_id = ?", mcq.McqId).First(&mcqData)
 	var topicInfo Topic
@@ -274,10 +288,11 @@ func checkYearlyAnalysis(db *gorm.DB, user userApi.User, distinctMcq Mcq.MCQ) er
 	return nil
 }
 
+/*  // Not utilised due to time constraints
 func checkTotalAnalysis(db *gorm.DB, user userApi.User, distinctMcq Mcq.MCQ) error {
-
 	return nil
 }
+*/
 
 func getWeeklyAnalysis(db *gorm.DB, M []Mcq.McqResult) WeeklyMcqAnalysis {
 	var weekAvg WeeklyMcqAnalysis
@@ -400,7 +415,7 @@ func getYearlyAnalysis(db *gorm.DB, monthlyAnalysis MonthlyMcqAnalysis) {
 
 }
 
-// Not used
+/*  // Not utilised due to time constraints
 func getTotalAnalysis(db *gorm.DB, yearlyAnalysis YearlyMcqAnalysis) {
 	userId, mcqId := yearlyAnalysis.UserId, yearlyAnalysis.McqId
 	var totalAvg TotalMcqAnalysis // Get Month Analysis
@@ -435,7 +450,7 @@ func getTotalAnalysis(db *gorm.DB, yearlyAnalysis YearlyMcqAnalysis) {
 	db.Model(TotalMcqAnalysisResult{}).Updates(TotalMcqAnalysis{LastModified: totalAvg.LastModified, AvgResult: average}).Where("total_r_ana = ?", totalAvg.TotalRAna)
 
 }
-
+*/
 func getTopicAnalysis(db *gorm.DB, userId uint) { // Get analysis for topic for SELECTED user
 	db.AutoMigrate(Topic{}, TopicAnalysis{})
 	var topics []Topic
@@ -506,7 +521,7 @@ func getConfidence(numberOfAlterations int, timeUsed time.Duration) (confidenceL
 	return confidenceLevel, confidence
 }
 
-// Not finished
+/*  // Not utilised due to time constraints
 func Normalise(yAxis []float64) {
 	min := yAxis[0]
 	max := yAxis[0]
@@ -525,44 +540,26 @@ func Normalise(yAxis []float64) {
 	}
 
 }
+*/
 
-func AnalyseGroups(db *gorm.DB) { // Analyse all groups
-	var groups []g.Group
-	db.Find(&groups)
-	fmt.Println("Groups", groups)
-	for _, group := range groups { // For each Group
-		var distinctTopicAnalysis []TopicAnalysis
-		db.
-			Order("topic_id").
-			Where("user_id = ?", group.CreatorId).
-			Find(&distinctTopicAnalysis) // Get all topics of creator
-		fmt.Println("Topics", distinctTopicAnalysis)
-		var members []g.Member
-		db.Where("group_id = ?", group.GroupId).
-			Find(&members) // Get all members of group
-		fmt.Println("Members", members)
-		for _, topic := range distinctTopicAnalysis {
-			var cumulative float64
-			var count float64
-			for _, member := range members { // For each member
-				var chosen TopicAnalysis
-				db.Where("user_id = ? AND topic_id = ?", member.UserId, topic.TopicId).
-					First(&chosen) // Get topic analysis for member for selected topic
-				fmt.Println("Chosen", chosen)
-				if chosen.TopicId != 0 {
-					cumulative += chosen.AvgResult
-					count += 1
-				}
-			}
-			avgResult := cumulative / count
-			var groupAnalysis g.GroupTopicAnalysis
-			db.Where("group_id = ? AND topic_id = ?", group.GroupId, topic.TopicId).
-				First(&groupAnalysis)
-			fmt.Println("Analysis", groupAnalysis)
-			if groupAnalysis.GTopId != 0 {
-			} else {
-				db.Create(&g.GroupTopicAnalysis{GroupId: group.GroupId, TopicId: topic.TopicId, TopicName: topic.TopicName, CreatedAt: time.Now(), AvgResult: avgResult})
-			}
-		}
+/*  // Not utilised due to time constraints
+func getLastWeeksWorseQuestions(db *gorm.DB, McqId uint) map[string]WeeklyMcqAnalysisResult {
+	QuestionAndResult := make(map[string]WeeklyMcqAnalysisResult)
+	var results []WeeklyMcqAnalysisResult
+	db.
+		Order("avg_result ASC").
+		Where("mcq_id = ?", McqId).
+		Limit(5).
+		Find(&results)
+	var questions []Mcq.McqQuestion
+	for _, qid := range results {
+		var question Mcq.McqQuestion
+		db.Where("mcq_id = ? AND q_id = ?", McqId, qid.QId).First(&question)
+		questions = append(questions, question)
+		QuestionAndResult[question.Question] = qid
 	}
+	fmt.Println("Worse Results ", QuestionAndResult)
+	return QuestionAndResult
+
 }
+*/
