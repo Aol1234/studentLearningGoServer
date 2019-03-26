@@ -346,11 +346,14 @@ func getMonthlyAnalysis(db *gorm.DB, weekAnalysis WeeklyMcqAnalysis) {
 		}
 		monthAvg.MonthlyMcqAnalysisResults[index].AvgTime = newAvgTime
 		monthAvg.MonthlyMcqAnalysisResults[index].AvgResult = newAvgResult
+		monthAvg.MonthlyMcqAnalysisResults[index].AvgConfidenceString = weeklyAnalysisResult.AvgConfidenceString
+		monthAvg.MonthlyMcqAnalysisResults[index].AvgConfidence = weeklyAnalysisResult.AvgConfidence
 	}
 	var cumulative float64
 	for _, Question := range monthAvg.MonthlyMcqAnalysisResults {
 		db.Model(&Question).
-			Updates(MonthlyMcqAnalysisResult{AvgTime: Question.AvgTime, AvgResult: Question.AvgResult, NumberOfResults: Question.NumberOfResults})
+			Updates(MonthlyMcqAnalysisResult{AvgTime: Question.AvgTime, AvgResult: Question.AvgResult,
+				NumberOfResults: Question.NumberOfResults, AvgConfidenceString: Question.AvgConfidenceString, AvgConfidence: Question.AvgConfidence})
 		cumulative += Question.AvgResult
 	}
 	average := cumulative / float64(len(monthAvg.MonthlyMcqAnalysisResults))
@@ -381,11 +384,15 @@ func getYearlyAnalysis(db *gorm.DB, monthlyAnalysis MonthlyMcqAnalysis) {
 		}
 		yearlyAvg.YearlyMcqAnalysisResults[index].AvgTime = newAvgTime
 		yearlyAvg.YearlyMcqAnalysisResults[index].AvgResult = newAvgResult
+		yearlyAvg.YearlyMcqAnalysisResults[index].AvgConfidence = monthlyAnalysisResult.AvgConfidence
+		yearlyAvg.YearlyMcqAnalysisResults[index].AvgConfidenceString = monthlyAnalysisResult.AvgConfidenceString
+
 	}
 	var cumulative float64
 	for _, Question := range yearlyAvg.YearlyMcqAnalysisResults {
 		db.Model(&Question).
-			Updates(YearlyMcqAnalysisResult{AvgTime: Question.AvgTime, AvgResult: Question.AvgResult, NumberOfResults: Question.NumberOfResults})
+			Updates(YearlyMcqAnalysisResult{AvgTime: Question.AvgTime, AvgResult: Question.AvgResult,
+				NumberOfResults: Question.NumberOfResults, AvgConfidenceString: Question.AvgConfidenceString, AvgConfidence: Question.AvgConfidence})
 		cumulative += Question.AvgResult
 	}
 	average := cumulative / float64(len(yearlyAvg.YearlyMcqAnalysisResults))

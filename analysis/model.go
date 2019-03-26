@@ -45,15 +45,16 @@ type MonthlyMcqAnalysis struct {
 
 // Single one for each Question for each MQC
 type MonthlyMcqAnalysisResult struct {
-	McqAnaId        uint `gorm:"primary_key;AUTO_INCREMENT"` // Analysis Id
-	MonthlyRAna     uint
-	QId             uint          `gorm:"foreignkey"`        // Associated Question Id
-	Question        string        `gorm:"foreignkey"`        // Question Name
-	McqId           uint          `json:"mcq_id"`            // Mcq Id to associate with mcq test
-	NumberOfResults int           `json:"number_of_results"` // Number of results over past month // Shouldn't go higher than 4
-	AvgTime         time.Duration `json:"avg_time"`          // Avg time taken to answer this question
-	AvgResult       float64       `json:"avg_result"`        // Avg chance answer is correct
-	AvgConfidence   float64       // Avg level of confidence 1 change + 5sec  = v.h >5 = v.l
+	McqAnaId            uint `gorm:"primary_key;AUTO_INCREMENT"` // Analysis Id
+	MonthlyRAna         uint
+	QId                 uint          `gorm:"foreignkey"`        // Associated Question Id
+	Question            string        `gorm:"foreignkey"`        // Question Name
+	McqId               uint          `json:"mcq_id"`            // Mcq Id to associate with mcq test
+	NumberOfResults     int           `json:"number_of_results"` // Number of results over past month // Shouldn't go higher than 4
+	AvgTime             time.Duration `json:"avg_time"`          // Avg time taken to answer this question
+	AvgResult           float64       `json:"avg_result"`        // Avg chance answer is correct
+	AvgConfidence       float64
+	AvgConfidenceString string
 }
 
 // Single one for each MQC for each User
@@ -69,15 +70,16 @@ type YearlyMcqAnalysis struct {
 
 // Single one for each Question for each MQC
 type YearlyMcqAnalysisResult struct {
-	McqAnaId        uint `gorm:"primary_key;AUTO_INCREMENT"` // Analysis Id
-	YearlyRAna      uint
-	QId             uint          `gorm:"foreignkey"`        // Associated Question Id
-	Question        string        `gorm:"foreignkey"`        // Question Name
-	McqId           uint          `json:"mcq_id"`            // Mcq Id to associate with mcq test
-	NumberOfResults int           `json:"number_of_results"` // Number of results over past week
-	AvgTime         time.Duration `json:"avg_time"`          // Avg time taken to answer this question
-	AvgResult       float64       `json:"avg_result"`        // Avg chance answer is correct
-	AvgConfidence   float64       // Avg level of confidence 1 change + 5sec  = v.h >5 = v.l
+	McqAnaId            uint `gorm:"primary_key;AUTO_INCREMENT"` // Analysis Id
+	YearlyRAna          uint
+	QId                 uint          `gorm:"foreignkey"`        // Associated Question Id
+	Question            string        `gorm:"foreignkey"`        // Question Name
+	McqId               uint          `json:"mcq_id"`            // Mcq Id to associate with mcq test
+	NumberOfResults     int           `json:"number_of_results"` // Number of results over past week
+	AvgTime             time.Duration `json:"avg_time"`          // Avg time taken to answer this question
+	AvgResult           float64       `json:"avg_result"`        // Avg chance answer is correct
+	AvgConfidence       float64
+	AvgConfidenceString string
 }
 
 // Single one for each MQC for each User
