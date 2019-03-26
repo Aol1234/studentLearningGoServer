@@ -113,7 +113,7 @@ func GetProfile(db *gorm.DB, userId uint) ([]Mcq.MCQ, []WeeklyMcqAnalysis, []Mon
 	db.Where("user_id = ?", userId).Find(&topics)
 	var collectionQuestions []Mcq.MCQ
 	db.Where("mcq_id IN (SELECT mcq_id FROM ltq4ywpuwsubopkz.mcq_results WHERE user_id = ?)", userId).
-		Preload("McqQuestions").
+		Preload("Mcq.McqQuestions").
 		Find(&collectionQuestions)
 	var collectionWeek []WeeklyMcqAnalysis
 	db.Where("user_id = ?", userId).
