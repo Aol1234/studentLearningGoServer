@@ -187,7 +187,8 @@ func checkTodayAnalysis(db *gorm.DB, user userApi.User, mcq Mcq.MCQ) error {
 	db.Where("user_id = ? AND mcq_id = ?", user.UserId, mcq.McqId).First(&WeeklyAnalysis)
 	// Check user has weekly Analysis for this mcq question
 	var questionAnalysis []WeeklyMcqAnalysisResult
-	db.Where("mcq_id = ?", mcq.McqId).Find(&questionAnalysis)
+	db.Where("mcq_id = ? AND user_id = ?", mcq.McqId, user.UserId).Find(&questionAnalysis)
+	fmt.Println("Length of Questions: ", len(questionAnalysis))
 	if len(questionAnalysis) == 0 {
 		fmt.Printf("Failed to find Question Analysis: %s", err)
 		for index := 0; index < numberOfQuestions; index++ {
