@@ -187,7 +187,7 @@ func checkTodayAnalysis(db *gorm.DB, user userApi.User, mcq Mcq.MCQ) error {
 	db.Where("user_id = ? AND mcq_id = ?", user.UserId, mcq.McqId).First(&WeeklyAnalysis)
 	// Check user has weekly Analysis for this mcq question
 	var questionAnalysis []WeeklyMcqAnalysisResult
-	db.Where("mcq_id = ? AND user_id = ?", mcq.McqId, user.UserId).Find(&questionAnalysis)
+	db.Where("mcq_id = ? AND weekly_r_ana = ?", mcq.McqId, WeeklyAnalysis.WeeklyRAna).Find(&questionAnalysis)
 	fmt.Println("Length of Questions: ", len(questionAnalysis))
 	if len(questionAnalysis) == 0 {
 		fmt.Printf("Failed to find Question Analysis: %s", err)
@@ -212,25 +212,23 @@ func checkMonthlyAnalysis(db *gorm.DB, user userApi.User, distinctMcq Mcq.MCQ) e
 	var mcq Mcq.MCQ
 	db.Where("mcq_id = ?", distinctMcq.McqId).First(&mcq)
 
-	// FIXME: Check user has Weekly Analysis
-
 	// Check User has
 	var MonthlyAnalysis MonthlyMcqAnalysis
 	err := db.Where("user_id = ? AND mcq_id = ?", user.UserId, distinctMcq.McqId).First(&MonthlyAnalysis).Error
-	if err != nil || MonthlyAnalysis.McqId == 0 {
+	if err != nil || MonthlyAnalysis.McqId == 0 { // Create empty Monthly Analysis Results
 		fmt.Printf("No Monthly Analysis created for this: %s  Creating new Analysis for Exam", err)
 		db.Create(&MonthlyMcqAnalysis{UserId: user.UserId, McqId: mcq.McqId, MonthlyMcqAnalysisResults: []MonthlyMcqAnalysisResult{}, Topic: mcq.Topic, AvgResult: 0})
 		db.Where("user_id = ? AND mcq_id = ?", user.UserId, distinctMcq.McqId).First(&MonthlyAnalysis)
 	}
 
-	// Create empty Monthly Analysis Results
+	// Collect weekly analysis of this mcq
 	var weeklyQuestionAnalysis []WeeklyMcqAnalysisResult
-	db.Where("mcq_id = ?", distinctMcq.McqId).Find(&weeklyQuestionAnalysis)
+	db.Where("mcq_id = ? AND user_id = ?", distinctMcq.McqId, user.UserId).Find(&weeklyQuestionAnalysis)
 	numberOfQuestions := len(weeklyQuestionAnalysis)
 
 	// Check user has weekly Analysis for this mcq question
 	var monthlyQuestionAnalysis []MonthlyMcqAnalysisResult
-	err = db.Where("mcq_id = ?", distinctMcq.McqId).Find(&monthlyQuestionAnalysis).Error
+	err = db.Where("mcq_id = ? AND user_id = ?", distinctMcq.McqId, user.UserId).Find(&monthlyQuestionAnalysis).Error
 	if len(monthlyQuestionAnalysis) == 0 || err != nil {
 		fmt.Printf("Failed to find Question Analysis: %s", err)
 		for index := 0; index < numberOfQuestions; index++ {
@@ -266,12 +264,12 @@ func checkYearlyAnalysis(db *gorm.DB, user userApi.User, distinctMcq Mcq.MCQ) er
 
 	// Create empty Monthly Analysis Results
 	var monthlyQuestionAnalysis []MonthlyMcqAnalysisResult
-	db.Where("mcq_id = ?", distinctMcq.McqId).Find(&monthlyQuestionAnalysis)
+	db.Where("mcq_id = ? AND user_id = ?", distinctMcq.McqId, user.UserId).Find(&monthlyQuestionAnalysis)
 	numberOfQuestions := len(monthlyQuestionAnalysis)
 
 	// Check user has weekly Analysis for this mcq question
 	var yearlyQuestionAnalysis []YearlyMcqAnalysisResult
-	err = db.Where("mcq_id = ?", distinctMcq.McqId).Find(&yearlyQuestionAnalysis).Error
+	err = db.Where("mcq_id = ? AND user_id = ?", distinctMcq.McqId, user.UserId).Find(&yearlyQuestionAnalysis).Error
 	if len(yearlyQuestionAnalysis) == 0 || err != nil {
 		fmt.Printf("Failed to find Question Analysis: %s", err)
 		for index := 0; index < numberOfQuestions; index++ {
