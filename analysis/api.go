@@ -560,7 +560,6 @@ func AnalyseGroups(db *gorm.DB) { // Analyse all groups
 				First(&groupAnalysis)
 			fmt.Println("Analysis", groupAnalysis)
 			if groupAnalysis.GTopId != 0 {
-				return
 			} else {
 				db.Create(&g.GroupTopicAnalysis{GroupId: group.GroupId, TopicId: topic.TopicId, TopicName: topic.TopicName, CreatedAt: time.Now(), AvgResult: avgResult})
 			}

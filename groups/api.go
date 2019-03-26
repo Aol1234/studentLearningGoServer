@@ -9,8 +9,6 @@ import (
 
 func CreateGroup(db *gorm.DB, userId uint, name string, desc string) xid.ID {
 	db.AutoMigrate(&Group{}, &Member{})
-	//create code
-	// code := "placeholder"
 	code := xid.New()
 	fmt.Printf("%s\n", code.String())
 	timeNow := time.Now()
