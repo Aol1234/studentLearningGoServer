@@ -220,15 +220,16 @@ func checkMonthlyAnalysis(db *gorm.DB, user userApi.User, distinctMcq Mcq.MCQ) e
 		db.Create(&MonthlyMcqAnalysis{UserId: user.UserId, McqId: mcq.McqId, MonthlyMcqAnalysisResults: []MonthlyMcqAnalysisResult{}, Topic: mcq.Topic, AvgResult: 0})
 		db.Where("user_id = ? AND mcq_id = ?", user.UserId, distinctMcq.McqId).First(&MonthlyAnalysis)
 	}
-
+	var Week WeeklyMcqAnalysis
+	db.Where("mcq_id = ? AND user_id = ?").First(&Week)
 	// Collect weekly analysis of this mcq
 	var weeklyQuestionAnalysis []WeeklyMcqAnalysisResult
-	db.Where("mcq_id = ? AND user_id = ?", distinctMcq.McqId, user.UserId).Find(&weeklyQuestionAnalysis)
+	db.Where("weekly_r_ana = ?", Week.WeeklyRAna).Find(&weeklyQuestionAnalysis)
 	numberOfQuestions := len(weeklyQuestionAnalysis)
 
 	// Check user has weekly Analysis for this mcq question
 	var monthlyQuestionAnalysis []MonthlyMcqAnalysisResult
-	err = db.Where("mcq_id = ? AND user_id = ?", distinctMcq.McqId, user.UserId).Find(&monthlyQuestionAnalysis).Error
+	err = db.Where("mcq_id = ? AND monthly_r_ana = ?", distinctMcq.McqId, MonthlyAnalysis.MonthlyRAna).Find(&monthlyQuestionAnalysis).Error
 	if len(monthlyQuestionAnalysis) == 0 || err != nil {
 		fmt.Printf("Failed to find Question Analysis: %s", err)
 		for index := 0; index < numberOfQuestions; index++ {
@@ -261,15 +262,16 @@ func checkYearlyAnalysis(db *gorm.DB, user userApi.User, distinctMcq Mcq.MCQ) er
 		db.Create(&YearlyMcqAnalysis{UserId: user.UserId, McqId: mcq.McqId, YearlyMcqAnalysisResults: []YearlyMcqAnalysisResult{}, Topic: mcq.Topic, AvgResult: 0})
 		db.Where("user_id = ? AND mcq_id = ?", user.UserId, distinctMcq.McqId).First(&YearlyAnalysis)
 	}
-
+	var Monthly MonthlyMcqAnalysis
+	db.Where("mcq_id = ? AND user_id = ?", distinctMcq.McqId, user.UserId).First(&Monthly)
 	// Create empty Monthly Analysis Results
 	var monthlyQuestionAnalysis []MonthlyMcqAnalysisResult
-	db.Where("mcq_id = ? AND user_id = ?", distinctMcq.McqId, user.UserId).Find(&monthlyQuestionAnalysis)
+	db.Where("monthly_r_ana = ?", Monthly.MonthlyRAna).Find(&monthlyQuestionAnalysis)
 	numberOfQuestions := len(monthlyQuestionAnalysis)
 
 	// Check user has weekly Analysis for this mcq question
 	var yearlyQuestionAnalysis []YearlyMcqAnalysisResult
-	err = db.Where("mcq_id = ? AND user_id = ?", distinctMcq.McqId, user.UserId).Find(&yearlyQuestionAnalysis).Error
+	err = db.Where("mcq_id = ? AND yearly_r_ana = ?", distinctMcq.McqId, YearlyAnalysis.YearlyRAna).Find(&yearlyQuestionAnalysis).Error
 	if len(yearlyQuestionAnalysis) == 0 || err != nil {
 		fmt.Printf("Failed to find Question Analysis: %s", err)
 		for index := 0; index < numberOfQuestions; index++ {
