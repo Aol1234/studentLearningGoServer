@@ -3,7 +3,7 @@ package studentAuth
 type app struct {
 }
 
-type Token struct {
+type Token struct { // Token Template struct
 	Issuer   string                 `json:"iss"`
 	Audience string                 `json:"aud"`
 	Expires  int64                  `json:"exp"`
@@ -11,4 +11,8 @@ type Token struct {
 	Subject  string                 `json:"sub,omitempty"`
 	UID      string                 `json:"uid,omitempty"`
 	Claims   map[string]interface{} `json:"-"`
+}
+
+type FirebaseToken struct { // Returned Firebase token
+	Idtoken string `json:"idtoken"`
 }
