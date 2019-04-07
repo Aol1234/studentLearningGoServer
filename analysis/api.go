@@ -1,10 +1,9 @@
 package analysis
 
 import (
-	"fmt"
 	g "github.com/Aol1234/studentLearningGoServer/groups"
 	Mcq "github.com/Aol1234/studentLearningGoServer/questionnaire"
-	userApi "github.com/Aol1234/studentLearningGoServer/userModel"
+	userApi "github.com/Aol1234/studentLearningGoServer/user"
 	"github.com/jinzhu/gorm"
 	"log"
 	"math"
@@ -15,17 +14,12 @@ func NewSql(db *gorm.DB) *Sql {
 	return &Sql{db: db}
 }
 
-// Collect mcq results for a particular user
 func CollectData(db *gorm.DB, userId uint, timePeriod string) {
-	db.AutoMigrate(&WeeklyMcqAnalysis{}, &WeeklyMcqAnalysisResult{},
-		&MonthlyMcqAnalysis{}, &MonthlyMcqAnalysisResult{},
-		&YearlyMcqAnalysis{}, &YearlyMcqAnalysisResult{},
-		&TotalMcqAnalysis{}, &TotalMcqAnalysisResult{})
-
+	// Collect mcq results for a particular user
 	var user userApi.User
 	db.Where("user_id = ?", userId).First(&user)
 
-	var period time.Time
+	var period time.Time // Select analysis
 	if timePeriod == "Month" {
 		period = time.Now().Add(-30 * (24 * time.Hour))
 	} else if timePeriod == "Week" {
@@ -34,76 +28,80 @@ func CollectData(db *gorm.DB, userId uint, timePeriod string) {
 		period = time.Now().Add(-365 * (24 * time.Hour))
 	}
 
-	var collection []Mcq.MCQ
+	var collection []Mcq.McqResult // Collect all mcq ids
 	collection = collectDistinctMcq(db, period)
-	if timePeriod == "Week" {
+	if timePeriod == "Week" { // Weekly analysis
 		for _, mcq := range collection {
 			var results []Mcq.McqResult // Collect all mcq results relating to this mcq
-			db.Where("user_id = ? AND mcq_id = ?", user.UserId, mcq.McqId).Preload("McqQuestionResult").Find(&results)
+			db.Where("user_id = ? AND mcq_id = ? AND created_at >= ?", user.UserId, mcq.McqId, period).Preload("McqQuestionResult").Find(&results)
 			if len(results) > 0 { // Check if results not empty
-				err := checkTodayAnalysis(db, user, mcq)
+				err := checkTodayAnalysis(db, user, mcq.McqId)
 				if err != nil {
 					log.Println(err)
 				}
 				getWeeklyAnalysis(db, results)
-				// getLastWeeksWorseQuestions(db, mcq.McqId)
 			}
 		}
-		getTopicAnalysis(db, userId)
-	} else if timePeriod == "Month" {
+		getTopicAnalysis(db, userId) // Collect topic analysis
+	} else if timePeriod == "Month" { // Monthly analysis
 		for _, mcq := range collection {
 			var analysis WeeklyMcqAnalysis // Weekly Analysis results relating to this mcq
 			db.Where("user_id = ? AND mcq_id = ?", user.UserId, mcq.McqId).Preload("WeeklyMcqAnalysisResults").First(&analysis)
 			if len(analysis.WeeklyMcqAnalysisResults) > 0 { // Check if results not empty
-				err := checkMonthlyAnalysis(db, user, mcq)
+				err := checkMonthlyAnalysis(db, user, mcq.McqId)
 				if err != nil {
 					log.Println(err)
 				}
 				getMonthlyAnalysis(db, analysis)
-				// getLastWeeksWorseQuestions(db, mcq.McqId)
 			}
 		}
-	} else if timePeriod == "Year" {
+	} else if timePeriod == "Year" { // Yearly analysis
 		for _, mcq := range collection {
 			var analysis MonthlyMcqAnalysis // Weekly Analysis results relating to this mcq
 			db.Where("user_id = ? AND mcq_id = ?", user.UserId, mcq.McqId).Preload("MonthlyMcqAnalysisResults").First(&analysis)
 			if len(analysis.MonthlyMcqAnalysisResults) > 0 { // Check if results not empty
-				err := checkYearlyAnalysis(db, user, mcq)
+				err := checkYearlyAnalysis(db, user, mcq.McqId)
 				if err != nil {
 					log.Println(err)
 				}
 				getYearlyAnalysis(db, analysis)
-				// getLastWeeksWorseQuestions(db, mcq.McqId)
 			}
 		}
 	}
 }
 
 func GetProfile(db *gorm.DB, userId uint) ([]Mcq.MCQ, []WeeklyMcqAnalysis, []MonthlyMcqAnalysis, []YearlyMcqAnalysis, [][]Mcq.McqResult, []TopicAnalysis) {
-	var topics []TopicAnalysis
+	// Collect personal information
+	var topics []TopicAnalysis // Collect topic analysis
 	db.Where("user_id = ?", userId).Find(&topics)
-	var collectionQuestions []Mcq.MCQ
-	db.Where("mcq_id IN (SELECT mcq_id FROM ltq4ywpuwsubopkz.weekly_mcq_analyses WHERE user_id = ?)", userId).
+	database := "ltq4ywpuwsubopkz." // database name
+	//local := ""
+	var collectionQuestions []Mcq.MCQ // Collect questions
+	db.Where("mcq_id IN (SELECT mcq_id FROM " + database + "mcqs)").
 		Preload("McqQuestions").
 		Find(&collectionQuestions)
-	var collectionWeek []WeeklyMcqAnalysis
+
+	var collectionWeek []WeeklyMcqAnalysis // Collect weekly analysis
 	db.Where("user_id = ?", userId).
 		Preload("WeeklyMcqAnalysisResults").
 		Find(&collectionWeek)
-	var collectionMonth []MonthlyMcqAnalysis
+
+	var collectionMonth []MonthlyMcqAnalysis // Collect monthly analysis
 	db.Where("user_id = ?", userId).
 		Preload("MonthlyMcqAnalysisResults").
 		Find(&collectionMonth)
-	var collectionYearly []YearlyMcqAnalysis
+
+	var collectionYearly []YearlyMcqAnalysis // Collect yearly analysis
 	db.Where("user_id = ?", userId).
 		Preload("YearlyMcqAnalysisResults").
 		Find(&collectionYearly)
-	var distinctMcq []Mcq.McqResult
+
+	var distinctMcq []Mcq.McqResult // Collect distinct mcq ids
 	var mcqResults [][]Mcq.McqResult
 	db.Select("DISTINCT(mcq_id)").Order("mcq_id").
 		Where("created_at >= ? AND user_id = ?", time.Now().Add(-365*(24*time.Hour)), userId).
 		Find(&distinctMcq)
-	for _, result := range distinctMcq {
+	for _, result := range distinctMcq { // Collect user results relating to mcq id
 		var temp []Mcq.McqResult
 		db.Where("user_id = ? AND created_at > ? AND mcq_id = ?", userId,
 			time.Now().Add(-365*(24*time.Hour)), result.McqId).
@@ -111,45 +109,42 @@ func GetProfile(db *gorm.DB, userId uint) ([]Mcq.MCQ, []WeeklyMcqAnalysis, []Mon
 			Find(&temp)
 		mcqResults = append(mcqResults, temp)
 	}
-	fmt.Println("Results", collectionWeek)
 	return collectionQuestions, collectionWeek, collectionMonth, collectionYearly, mcqResults, topics
 }
 
 func AnalyseGroups(db *gorm.DB) { // Analyse all groups
 	var groups []g.Group
-	db.Find(&groups)
-	fmt.Println("Groups", groups)
+	db.Find(&groups)               // Groups
 	for _, group := range groups { // For each Group
 		var distinctTopicAnalysis []TopicAnalysis
 		db.
 			Order("topic_id").
 			Where("user_id = ?", group.CreatorId).
 			Find(&distinctTopicAnalysis) // Get all topics of creator
-		fmt.Println("Topics", distinctTopicAnalysis)
 		var members []g.Member
 		db.Where("group_id = ?", group.GroupId).
 			Find(&members) // Get all members of group
-		fmt.Println("Members", members)
-		for _, topic := range distinctTopicAnalysis {
+		for _, topic := range distinctTopicAnalysis { // For each topic
 			var cumulative float64
 			var count float64
 			for _, member := range members { // For each member
 				var chosen TopicAnalysis
 				db.Where("user_id = ? AND topic_id = ?", member.UserId, topic.TopicId).
 					First(&chosen) // Get topic analysis for member for selected topic
-				fmt.Println("Chosen", chosen)
 				if chosen.TopicId != 0 {
 					cumulative += chosen.AvgResult
 					count += 1
 				}
 			}
-			avgResult := cumulative / count
-			var groupAnalysis g.GroupTopicAnalysis
+			avgResult := cumulative / count        // Get average
+			var groupAnalysis g.GroupTopicAnalysis // Get analysis associated with group id and topic id
 			db.Where("group_id = ? AND topic_id = ?", group.GroupId, topic.TopicId).
 				First(&groupAnalysis)
-			fmt.Println("Analysis", groupAnalysis)
-			if groupAnalysis.GTopId != 0 {
+			if groupAnalysis.GTopId != 0 { // if analysis for this group topic
+				// update analysis
+				db.Table("group_topic_analyses").Updates(&g.GroupTopicAnalysis{AvgResult: avgResult}).Where("g_top_id = ?", groupAnalysis.GTopId)
 			} else {
+				// create analysis
 				db.Create(&g.GroupTopicAnalysis{GroupId: group.GroupId, TopicId: topic.TopicId, TopicName: topic.TopicName, CreatedAt: time.Now(), AvgResult: avgResult})
 			}
 		}
@@ -158,88 +153,85 @@ func AnalyseGroups(db *gorm.DB) { // Analyse all groups
 
 //////////  Private Methods  //////////
 
-func collectDistinctMcq(db *gorm.DB, timePeriod time.Time) (collection []Mcq.MCQ) {
+func collectDistinctMcq(db *gorm.DB, timePeriod time.Time) (collection []Mcq.McqResult) {
 	// Collects all uniques ids associated with each mcq
 	db.Select("DISTINCT(mcq_id)").Order("mcq_id").Where("created_at >= ? ", timePeriod).Find(&collection)
 	return collection
 }
 
-func checkTodayAnalysis(db *gorm.DB, user userApi.User, mcq Mcq.MCQ) error {
-	fmt.Print("HERE! ", user.UserId, mcq.Name)
-	var mcqData Mcq.MCQ
-	db.Where("mcq_id = ?", mcq.McqId).First(&mcqData)
-	var topicInfo Topic
+func checkTodayAnalysis(db *gorm.DB, user userApi.User, mcqId uint) error {
+	// Check if user has topic analysis and create analysis if none exists
+	var mcqData Mcq.MCQ // Get Mcq
+	db.Where("mcq_id = ?", mcqId).First(&mcqData)
+	var topicInfo Topic // Get topic of Mcq
 	db.Where("topic_name = ?", mcqData.Topic).First(&topicInfo)
 	// Check user has weekly Analysis
 	var QId []Mcq.McqQuestion
-	db.Select("q_id").Where("mcq_id = ?", mcq.McqId).Find(&QId)
+	db.Select("q_id").Where("mcq_id = ?", mcqId).Find(&QId)
 	var WeeklyAnalysis WeeklyMcqAnalysis
-	err := db.Where("user_id = ? AND mcq_id = ?", user.UserId, mcq.McqId).First(&WeeklyAnalysis).Error
-	if err != nil || WeeklyAnalysis.McqId == 0 {
-		fmt.Printf("No Weekly Analysis created for this: %s  Creating new Analysis for Exam", err)
-		db.Create(&WeeklyMcqAnalysis{UserId: user.UserId, McqId: mcq.McqId, WeeklyMcqAnalysisResults: []WeeklyMcqAnalysisResult{}, Topic: mcqData.Topic, TopicId: topicInfo.TopicId, AvgResult: 0})
+	err := db.Where("user_id = ? AND mcq_id = ?", user.UserId, mcqId).First(&WeeklyAnalysis).Error
+	if err != nil || WeeklyAnalysis.McqId == 0 { // Create analysis if none exist
+		log.Printf("No Weekly Analysis created for this: %s  Creating new Analysis for Exam", err)
+		db.Create(&WeeklyMcqAnalysis{UserId: user.UserId, McqId: mcqId, WeeklyMcqAnalysisResults: []WeeklyMcqAnalysisResult{}, Topic: mcqData.Topic, TopicId: topicInfo.TopicId, AvgResult: 0})
 	}
 	// Create empty weekly Analysis
 	var question []Mcq.McqQuestion
-	db.Where("mcq_id = ?", mcq.McqId).Find(&question)
+	db.Where("mcq_id = ?", mcqId).Find(&question)
 	numberOfQuestions := len(question)
 
-	db.Where("user_id = ? AND mcq_id = ?", user.UserId, mcq.McqId).First(&WeeklyAnalysis)
+	db.Where("user_id = ? AND mcq_id = ?", user.UserId, mcqId).First(&WeeklyAnalysis)
 	// Check user has weekly Analysis for this mcq question
 	var questionAnalysis []WeeklyMcqAnalysisResult
-	db.Where("mcq_id = ? AND weekly_r_ana = ?", mcq.McqId, WeeklyAnalysis.WeeklyRAna).Find(&questionAnalysis)
-	fmt.Println("Length of Questions: ", len(questionAnalysis))
-	if len(questionAnalysis) == 0 {
-		fmt.Printf("Failed to find Question Analysis: %s", err)
+	db.Where("mcq_id = ? AND weekly_r_ana = ?", mcqId, WeeklyAnalysis.WeeklyRAna).Find(&questionAnalysis)
+	if len(questionAnalysis) == 0 { // Create analysis records
+		log.Printf("Failed to find Question Analysis: %s", err)
 		for index := 0; index < numberOfQuestions; index++ {
 			var question Mcq.McqQuestion
 			db.Where("q_id = ?", QId[index].QId).First(&question)
 			err = db.Create(&WeeklyMcqAnalysisResult{
-				WeeklyRAna: WeeklyAnalysis.WeeklyRAna, McqId: mcq.McqId, NumberOfResults: 0,
+				WeeklyRAna: WeeklyAnalysis.WeeklyRAna, McqId: mcqId, NumberOfResults: 0,
 				AvgTime: time.Duration(0), AvgResult: 0.00, QId: QId[index].QId, Question: question.Question}).Error
 			if err != nil {
-				fmt.Printf("Failed to create Question Analysis: %s", err)
+				log.Printf("Failed to create Question Analysis: %s", err)
 				return err
 			}
 		}
 	}
-
 	return nil
 }
 
-func checkMonthlyAnalysis(db *gorm.DB, user userApi.User, distinctMcq Mcq.MCQ) error {
-	// Checked Weekly
-	var mcq Mcq.MCQ
-	db.Where("mcq_id = ?", distinctMcq.McqId).First(&mcq)
+func checkMonthlyAnalysis(db *gorm.DB, user userApi.User, distinctMcq uint) error {
+	// Check monthly analysis
+	var mcq Mcq.MCQ // Checked Weekly
+	db.Where("mcq_id = ?", distinctMcq).First(&mcq)
 
-	// Check User has
-	var MonthlyAnalysis MonthlyMcqAnalysis
-	err := db.Where("user_id = ? AND mcq_id = ?", user.UserId, distinctMcq.McqId).First(&MonthlyAnalysis).Error
+	var MonthlyAnalysis MonthlyMcqAnalysis // Check User has monthly analysis
+	err := db.Where("user_id = ? AND mcq_id = ?", user.UserId, distinctMcq).First(&MonthlyAnalysis).Error
 	if err != nil || MonthlyAnalysis.McqId == 0 { // Create empty Monthly Analysis Results
-		fmt.Printf("No Monthly Analysis created for this: %s  Creating new Analysis for Exam", err)
+		log.Printf("No Monthly Analysis created for this: %s  Creating new Analysis for Exam", err)
 		db.Create(&MonthlyMcqAnalysis{UserId: user.UserId, McqId: mcq.McqId, MonthlyMcqAnalysisResults: []MonthlyMcqAnalysisResult{}, Topic: mcq.Topic, AvgResult: 0})
-		db.Where("user_id = ? AND mcq_id = ?", user.UserId, distinctMcq.McqId).First(&MonthlyAnalysis)
+		db.Where("user_id = ? AND mcq_id = ?", user.UserId, distinctMcq).First(&MonthlyAnalysis)
 	}
-	var Week WeeklyMcqAnalysis
-	db.Where("mcq_id = ? AND user_id = ?", distinctMcq.McqId, user.UserId).First(&Week)
+	var Week WeeklyMcqAnalysis // Collect weekly analysis of this mcq
+	db.Where("mcq_id = ? AND user_id = ?", distinctMcq, user.UserId).First(&Week)
 	// Collect weekly analysis of this mcq
 	var weeklyQuestionAnalysis []WeeklyMcqAnalysisResult
 	db.Where("weekly_r_ana = ?", Week.WeeklyRAna).Find(&weeklyQuestionAnalysis)
 	numberOfQuestions := len(weeklyQuestionAnalysis)
 
-	// Check user has weekly Analysis for this mcq question
+	// Check user has monthly Analysis for this mcq question
 	var monthlyQuestionAnalysis []MonthlyMcqAnalysisResult
-	err = db.Where("mcq_id = ? AND monthly_r_ana = ?", distinctMcq.McqId, MonthlyAnalysis.MonthlyRAna).Find(&monthlyQuestionAnalysis).Error
-	if len(monthlyQuestionAnalysis) == 0 || err != nil {
-		fmt.Printf("Failed to find Question Analysis: %s", err)
-		for index := 0; index < numberOfQuestions; index++ {
-			var question Mcq.McqQuestion
+	err = db.Where("mcq_id = ? AND monthly_r_ana = ?", distinctMcq, MonthlyAnalysis.MonthlyRAna).Find(&monthlyQuestionAnalysis).Error
+	if len(monthlyQuestionAnalysis) == 0 || err != nil { // If no question analysis
+		log.Printf("Failed to find Question Analysis: %s", err)
+		for index := 0; index < numberOfQuestions; index++ { // for each question
+			var question Mcq.McqQuestion // Find question
 			db.Where("q_id = ?", weeklyQuestionAnalysis[index].QId).First(&question)
 			err = db.Create(&MonthlyMcqAnalysisResult{
 				MonthlyRAna: MonthlyAnalysis.MonthlyRAna, McqId: mcq.McqId, NumberOfResults: 0,
 				AvgTime: time.Duration(0), AvgResult: 0.00, QId: weeklyQuestionAnalysis[index].QId, Question: question.Question}).Error
 			if err != nil {
-				fmt.Printf("Failed to create Question Analysis: %s", err)
+				log.Printf("Failed to create Question Analysis: %s", err)
 				return err
 			}
 		}
@@ -247,41 +239,36 @@ func checkMonthlyAnalysis(db *gorm.DB, user userApi.User, distinctMcq Mcq.MCQ) e
 	return nil
 }
 
-func checkYearlyAnalysis(db *gorm.DB, user userApi.User, distinctMcq Mcq.MCQ) error {
-	// Checked Monthly
-	var mcq Mcq.MCQ
-	db.Where("mcq_id = ?", distinctMcq.McqId).First(&mcq)
+func checkYearlyAnalysis(db *gorm.DB, user userApi.User, distinctMcq uint) error {
+	// Check if user has yearly analysis
+	var mcq Mcq.MCQ // Checked Monthly
+	db.Where("mcq_id = ?", distinctMcq).First(&mcq)
 
-	// FIXME: Check user has Monthly Analysis
-
-	// Check User has
-	var YearlyAnalysis YearlyMcqAnalysis
-	err := db.Where("user_id = ? AND mcq_id = ?", user.UserId, distinctMcq.McqId).First(&YearlyAnalysis).Error
-	if err != nil || YearlyAnalysis.McqId == 0 {
-		fmt.Printf("No Yearly Analysis created for this: %s  Creating new Analysis for Exam", err)
+	var YearlyAnalysis YearlyMcqAnalysis // Check User has yearly analysis
+	err := db.Where("user_id = ? AND mcq_id = ?", user.UserId, distinctMcq).First(&YearlyAnalysis).Error
+	if err != nil || YearlyAnalysis.McqId == 0 { // If no yearly analysis
+		log.Printf("No Yearly Analysis created for this: %s  Creating new Analysis for Exam", err)
 		db.Create(&YearlyMcqAnalysis{UserId: user.UserId, McqId: mcq.McqId, YearlyMcqAnalysisResults: []YearlyMcqAnalysisResult{}, Topic: mcq.Topic, AvgResult: 0})
-		db.Where("user_id = ? AND mcq_id = ?", user.UserId, distinctMcq.McqId).First(&YearlyAnalysis)
+		db.Where("user_id = ? AND mcq_id = ?", user.UserId, distinctMcq).First(&YearlyAnalysis)
 	}
-	var Monthly MonthlyMcqAnalysis
-	db.Where("mcq_id = ? AND user_id = ?", distinctMcq.McqId, user.UserId).First(&Monthly)
-	// Create empty Monthly Analysis Results
-	var monthlyQuestionAnalysis []MonthlyMcqAnalysisResult
+	var Monthly MonthlyMcqAnalysis // Find monthly analysis with Mcq id and User id
+	db.Where("mcq_id = ? AND user_id = ?", distinctMcq, user.UserId).First(&Monthly)
+	var monthlyQuestionAnalysis []MonthlyMcqAnalysisResult // Create empty Monthly Analysis Results
 	db.Where("monthly_r_ana = ?", Monthly.MonthlyRAna).Find(&monthlyQuestionAnalysis)
 	numberOfQuestions := len(monthlyQuestionAnalysis)
 
-	// Check user has weekly Analysis for this mcq question
-	var yearlyQuestionAnalysis []YearlyMcqAnalysisResult
-	err = db.Where("mcq_id = ? AND yearly_r_ana = ?", distinctMcq.McqId, YearlyAnalysis.YearlyRAna).Find(&yearlyQuestionAnalysis).Error
-	if len(yearlyQuestionAnalysis) == 0 || err != nil {
-		fmt.Printf("Failed to find Question Analysis: %s", err)
-		for index := 0; index < numberOfQuestions; index++ {
-			var question Mcq.McqQuestion
+	var yearlyQuestionAnalysis []YearlyMcqAnalysisResult // Check user has weekly Analysis for this mcq question
+	err = db.Where("mcq_id = ? AND yearly_r_ana = ?", distinctMcq, YearlyAnalysis.YearlyRAna).Find(&yearlyQuestionAnalysis).Error
+	if len(yearlyQuestionAnalysis) == 0 || err != nil { // If no yearly question analysis
+		log.Printf("Failed to find Question Analysis: %s", err)
+		for index := 0; index < numberOfQuestions; index++ { // For each question
+			var question Mcq.McqQuestion // Creat yearly question analysis
 			db.Where("q_id = ?", monthlyQuestionAnalysis[index].QId).First(&question)
 			err = db.Create(&YearlyMcqAnalysisResult{
 				YearlyRAna: YearlyAnalysis.YearlyRAna, McqId: mcq.McqId, NumberOfResults: 0,
 				AvgTime: time.Duration(0), AvgResult: 0.00, QId: monthlyQuestionAnalysis[index].QId, Question: question.Question}).Error
 			if err != nil {
-				fmt.Printf("Failed to create Question Analysis: %s", err)
+				log.Printf("Failed to create Question Analysis: %s", err)
 				return err
 			}
 		}
@@ -296,8 +283,8 @@ func checkTotalAnalysis(db *gorm.DB, user userApi.User, distinctMcq Mcq.MCQ) err
 */
 
 func getWeeklyAnalysis(db *gorm.DB, M []Mcq.McqResult) WeeklyMcqAnalysis {
-	var weekAvg WeeklyMcqAnalysis
-	// Get Week Analysis
+	// Run analysis
+	var weekAvg WeeklyMcqAnalysis // Get Week Analysis
 	db.Where("mcq_id = ? AND user_id = ?", M[0].McqId, M[0].UserId).
 		Preload("WeeklyMcqAnalysisResults").
 		First(&weekAvg)
@@ -334,11 +321,12 @@ func getWeeklyAnalysis(db *gorm.DB, M []Mcq.McqResult) WeeklyMcqAnalysis {
 		cumulative += Question.AvgResult
 	}
 	average := cumulative / float64(len(weekAvg.WeeklyMcqAnalysisResults))
-	db.Model(WeeklyMcqAnalysis{}).Updates(WeeklyMcqAnalysis{LastModified: weekAvg.LastModified, AvgResult: average}).Where("weekly_r_ana = ?", weekAvg.WeeklyRAna)
+	db.Table("weekly_mcq_analyses").Updates(WeeklyMcqAnalysis{LastModified: weekAvg.LastModified, AvgResult: average}).Where("weekly_r_ana = ?", weekAvg.WeeklyRAna)
 	return weekAvg
 }
 
 func getMonthlyAnalysis(db *gorm.DB, weekAnalysis WeeklyMcqAnalysis) {
+	// Run analysis
 	userId, mcqId := weekAnalysis.UserId, weekAnalysis.McqId
 	var monthAvg MonthlyMcqAnalysis // Get Month Analysis
 	db.Where("mcq_id = ? AND user_id = ?", mcqId, userId).
@@ -346,18 +334,18 @@ func getMonthlyAnalysis(db *gorm.DB, weekAnalysis WeeklyMcqAnalysis) {
 		First(&monthAvg)
 	monthAvg.LastModified = time.Now()
 
-	for index, weeklyAnalysisResult := range weekAnalysis.WeeklyMcqAnalysisResults {
+	for index, weeklyAnalysisResult := range weekAnalysis.WeeklyMcqAnalysisResults { // For each weekly analysis
 		currentAvgTime := monthAvg.MonthlyMcqAnalysisResults[index].AvgTime
 		currentAvgResult := monthAvg.MonthlyMcqAnalysisResults[index].AvgResult
 		previousWeek := float64(weeklyAnalysisResult.AvgResult)
-		if currentAvgTime == 0 {
-			currentAvgTime = weeklyAnalysisResult.AvgTime // If no current average time, current average time duplicated
+		if currentAvgTime == 0 { // If no current average time, current average time duplicated
+			currentAvgTime = weeklyAnalysisResult.AvgTime
 		}
 		numberOfResults := float64(monthAvg.MonthlyMcqAnalysisResults[index].NumberOfResults)
 		newAvgTime := (currentAvgTime + weeklyAnalysisResult.AvgTime) / time.Duration(2)
 		newAvgResult := ((currentAvgResult * numberOfResults) + previousWeek) / (numberOfResults + 1)
 
-		if numberOfResults < 4 {
+		if numberOfResults < 4 { // Prevent analysis of more than four weeks
 			monthAvg.MonthlyMcqAnalysisResults[index].NumberOfResults += 1
 		}
 		monthAvg.MonthlyMcqAnalysisResults[index].AvgTime = newAvgTime
@@ -366,36 +354,40 @@ func getMonthlyAnalysis(db *gorm.DB, weekAnalysis WeeklyMcqAnalysis) {
 		monthAvg.MonthlyMcqAnalysisResults[index].AvgConfidence = weeklyAnalysisResult.AvgConfidence
 	}
 	var cumulative float64
-	for _, Question := range monthAvg.MonthlyMcqAnalysisResults {
+	for _, Question := range monthAvg.MonthlyMcqAnalysisResults { // For each question analysis
+		// Update analysis for monthly question analysis with analysis id
 		db.Model(&Question).
 			Updates(MonthlyMcqAnalysisResult{AvgTime: Question.AvgTime, AvgResult: Question.AvgResult,
-				NumberOfResults: Question.NumberOfResults, AvgConfidenceString: Question.AvgConfidenceString, AvgConfidence: Question.AvgConfidence})
+				NumberOfResults: Question.NumberOfResults, AvgConfidenceString: Question.AvgConfidenceString, AvgConfidence: Question.AvgConfidence}).
+			Where("where monthly_r_ana = ?", monthAvg.MonthlyRAna)
 		cumulative += Question.AvgResult
 	}
 	average := cumulative / float64(len(monthAvg.MonthlyMcqAnalysisResults))
-	db.Model(MonthlyMcqAnalysis{}).Updates(MonthlyMcqAnalysis{LastModified: monthAvg.LastModified, AvgResult: average}).Where("monthly_r_ana = ?", monthAvg.MonthlyRAna)
+	// Update Monthly analysis
+	db.Table("monthly_mcq_analyses").Updates(MonthlyMcqAnalysis{LastModified: monthAvg.LastModified, AvgResult: average}).Where("monthly_r_ana = ?", monthAvg.MonthlyRAna)
 }
 
 func getYearlyAnalysis(db *gorm.DB, monthlyAnalysis MonthlyMcqAnalysis) {
+	// Run analysis
 	userId, mcqId := monthlyAnalysis.UserId, monthlyAnalysis.McqId
-	var yearlyAvg YearlyMcqAnalysis // Get Month Analysis
+	var yearlyAvg YearlyMcqAnalysis // Get Yearly Analysis
 	db.Where("mcq_id = ? AND user_id = ?", mcqId, userId).
 		Preload("YearlyMcqAnalysisResults").
 		First(&yearlyAvg)
 	yearlyAvg.LastModified = time.Now()
 
-	for index, monthlyAnalysisResult := range monthlyAnalysis.MonthlyMcqAnalysisResults {
+	for index, monthlyAnalysisResult := range monthlyAnalysis.MonthlyMcqAnalysisResults { // For each monthly analysis question
 		currentAvgTime := yearlyAvg.YearlyMcqAnalysisResults[index].AvgTime
 		currentAvgResult := yearlyAvg.YearlyMcqAnalysisResults[index].AvgResult
 		previousWeek := float64(monthlyAnalysisResult.AvgResult)
-		if currentAvgTime == 0 {
-			currentAvgTime = monthlyAnalysisResult.AvgTime // If no current average time, current average time duplicated
+		if currentAvgTime == 0 { // If no current average time, current average time duplicated
+			currentAvgTime = monthlyAnalysisResult.AvgTime
 		}
 		numberOfResults := float64(yearlyAvg.YearlyMcqAnalysisResults[index].NumberOfResults)
 		newAvgTime := (currentAvgTime + monthlyAnalysisResult.AvgTime) / time.Duration(2)
 		newAvgResult := ((currentAvgResult * numberOfResults) + previousWeek) / (numberOfResults + 1)
 
-		if numberOfResults < 12 {
+		if numberOfResults < 12 { // Limit analysis to twelve months
 			yearlyAvg.YearlyMcqAnalysisResults[index].NumberOfResults += 1
 		}
 		yearlyAvg.YearlyMcqAnalysisResults[index].AvgTime = newAvgTime
@@ -405,14 +397,15 @@ func getYearlyAnalysis(db *gorm.DB, monthlyAnalysis MonthlyMcqAnalysis) {
 
 	}
 	var cumulative float64
-	for _, Question := range yearlyAvg.YearlyMcqAnalysisResults {
+	for _, Question := range yearlyAvg.YearlyMcqAnalysisResults { // Update each question analysis
 		db.Model(&Question).
 			Updates(YearlyMcqAnalysisResult{AvgTime: Question.AvgTime, AvgResult: Question.AvgResult,
 				NumberOfResults: Question.NumberOfResults, AvgConfidenceString: Question.AvgConfidenceString, AvgConfidence: Question.AvgConfidence})
 		cumulative += Question.AvgResult
 	}
 	average := cumulative / float64(len(yearlyAvg.YearlyMcqAnalysisResults))
-	db.Model(YearlyMcqAnalysis{}).Updates(YearlyMcqAnalysis{LastModified: yearlyAvg.LastModified, AvgResult: average}).Where("yearly_r_ana = ?", yearlyAvg.YearlyRAna)
+	// update yearly analysis
+	db.Table("yearly_mcq_analyses").Updates(YearlyMcqAnalysis{LastModified: yearlyAvg.LastModified, AvgResult: average}).Where("yearly_r_ana = ?", yearlyAvg.YearlyRAna)
 
 }
 
@@ -452,19 +445,20 @@ func getTotalAnalysis(db *gorm.DB, yearlyAnalysis YearlyMcqAnalysis) {
 
 }
 */
-func getTopicAnalysis(db *gorm.DB, userId uint) { // Get analysis for topic for SELECTED user
-	db.AutoMigrate(Topic{}, TopicAnalysis{})
+
+func getTopicAnalysis(db *gorm.DB, userId uint) {
+	// Get analysis for topic for user
 	var topics []Topic
 	db.Find(&topics)               // Find all topics
 	for _, topic := range topics { // For each topic
 		var weekAvg []WeeklyMcqAnalysis
-		db.Where("user_id = ? AND topic = ?", userId, topic.TopicName).
+		db.Where("user_id = ? AND topic_id = ?", userId, topic.TopicName).
 			Find(&weekAvg) // Find topics this user has tested
 		var cumulative float64
 		var count float64
 		if len(weekAvg) != 0 { // User has at least one analysis in this topic
 			for _, analysis := range weekAvg { // For each week analysis
-				if analysis.AvgResult != 0 {
+				if analysis.AvgResult != 0 { // If result
 					cumulative += analysis.AvgResult
 					count += 1
 				}
@@ -472,10 +466,11 @@ func getTopicAnalysis(db *gorm.DB, userId uint) { // Get analysis for topic for 
 			avg := cumulative / count
 			var topicAnalysis TopicAnalysis
 			db.Where("topic_id = ? AND user_id = ?", topic.TopicId, userId).
-				First(&topicAnalysis)
-			if topicAnalysis.TopicId != 0 {
-				db.Table("topic_analyses").Update("avg_result", avg).Where("user_id = ? AND topic_id = ?", userId, topic.TopicId)
-			} else {
+				First(&topicAnalysis) // Get topic analysis
+			if topicAnalysis.TopicId != 0 { // Update analysis
+				db.Table("topic_analyses").Update("avg_result", avg).Where("user_id = ? AND topic_id = ?", userId, topic.TopicId).
+					Where("topic_ana_id = ?", topic.TopicId)
+			} else { // Create analysis
 				db.Create(&TopicAnalysis{UserId: userId, TopicId: topic.TopicId, TopicName: topic.TopicName, AvgResult: avg})
 			}
 
@@ -484,29 +479,27 @@ func getTopicAnalysis(db *gorm.DB, userId uint) { // Get analysis for topic for 
 }
 
 func getConfidence(numberOfAlterations int, timeUsed time.Duration) (confidenceLevel string, confidence float64) {
+	// Calculate Confidence
 	VeryHigh := float64(0.85)
 	High := float64(0.65)
 	SomeWhat := float64(0.50)
 	Low := float64(0.25)
 	VeryLow := float64(0)
-	// Calculate Confidence
 	idealTime := time.Duration(10 * time.Second)
 	idealNumberOfAlterations := 1.1
-	if numberOfAlterations < 2 { // Provides  100% Confidence if first choice chosen
+	if numberOfAlterations < 2 { // Provides  100% Confidence if result changed once
 		numberOfAlterations = 0
 	}
 	confidenceNumberOfAlterations := math.Pow(idealNumberOfAlterations, -float64(numberOfAlterations))
-	fmt.Println("Confidence Of Alterations", confidenceNumberOfAlterations, numberOfAlterations)
-	timeUsed = time.Duration(timeUsed * 1000)
+	timeUsed = time.Duration(timeUsed * 1000000) //  time to seconds
 	var confidenceInTime float64
-	if timeUsed < idealTime {
+	if timeUsed < idealTime { // Prevent greater than 100% confidence
 		confidenceInTime = math.Pow(float64(idealTime), -0)
 	} else {
-		// TODO: This does not correctly calculate confidence, y needs to divided by 10
 		confidenceInTime = math.Pow(float64(idealTime), -(float64(timeUsed - idealTime)))
 	}
-	fmt.Println("Confidence of Time", confidenceInTime, timeUsed)
-	confidence = (confidenceNumberOfAlterations + confidenceInTime) / 2
+	confidence = (confidenceNumberOfAlterations + confidenceInTime) / 2 // Get confidence
+	// Get string value
 	if confidence > VeryHigh {
 		confidenceLevel = "Very High"
 	} else if confidence > High {
@@ -518,7 +511,6 @@ func getConfidence(numberOfAlterations int, timeUsed time.Duration) (confidenceL
 	} else if confidence >= VeryLow {
 		confidenceLevel = "Very Low"
 	}
-	fmt.Println("Confidence", confidenceLevel, confidence)
 	return confidenceLevel, confidence
 }
 

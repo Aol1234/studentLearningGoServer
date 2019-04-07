@@ -8,12 +8,12 @@ import (
 
 // Single one for each MQC for each User
 type WeeklyMcqAnalysis struct {
-	WeeklyRAna               uint   `gorm:"primary_key; AUTO_INCREMENT"`
-	UserId                   uint   `gorm:"foreignkey"` // User Id
-	McqId                    uint   `gorm:"foreignkey"` // Mcq Id to associate with mcq test
-	Topic                    string // Topic Associated with MCQ
-	TopicId                  uint
-	AvgResult                float64
+	WeeklyRAna               uint                      `gorm:"primary_key; AUTO_INCREMENT"`
+	UserId                   uint                      `gorm:"foreignkey"` // User Id
+	McqId                    uint                      `gorm:"foreignkey"` // Mcq Id to associate with mcq test
+	Topic                    string                    // Topic Associated with MCQ
+	TopicId                  uint                      // Topic id
+	AvgResult                float64                   // Average result
 	LastModified             time.Time                 // Time user last updated result
 	WeeklyMcqAnalysisResults []WeeklyMcqAnalysisResult `gorm:"foreignkey:WeeklyRAna"`
 }
@@ -28,17 +28,17 @@ type WeeklyMcqAnalysisResult struct {
 	NumberOfResults     int           `json:"number_of_results"` // Number of results over past week
 	AvgTime             time.Duration `json:"avg_time"`          // Avg time taken to answer this question
 	AvgResult           float64       `json:"avg_result"`        // Avg chance answer is correct
-	AvgConfidenceString string
-	AvgConfidence       float64 // Avg level of confidence 1 change + 5sec  = v.h >5 = v.l
+	AvgConfidenceString string        // String of Confidence
+	AvgConfidence       float64       // Avg level of confidence
 }
 
 // Single one for each MQC for each User
 type MonthlyMcqAnalysis struct {
-	MonthlyRAna               uint   `gorm:"primary_key; AUTO_INCREMENT"`
-	UserId                    uint   `gorm:"foreignkey"` // User Id
-	McqId                     uint   `gorm:"foreignkey"` // Mcq Id to associate with mcq test
-	Topic                     string // Topic Associated with MCQ
-	AvgResult                 float64
+	MonthlyRAna               uint                       `gorm:"primary_key; AUTO_INCREMENT"`
+	UserId                    uint                       `gorm:"foreignkey"` // User Id
+	McqId                     uint                       `gorm:"foreignkey"` // Mcq Id to associate with mcq test
+	Topic                     string                     // Topic Associated with MCQ
+	AvgResult                 float64                    // Average result
 	LastModified              time.Time                  // Time user last updated result
 	MonthlyMcqAnalysisResults []MonthlyMcqAnalysisResult `gorm:"foreignkey:MonthlyRAna"`
 }
@@ -59,11 +59,11 @@ type MonthlyMcqAnalysisResult struct {
 
 // Single one for each MQC for each User
 type YearlyMcqAnalysis struct {
-	YearlyRAna               uint   `gorm:"primary_key; AUTO_INCREMENT"`
-	UserId                   uint   `gorm:"foreignkey"` // User Id
-	McqId                    uint   `gorm:"foreignkey"` // Mcq Id to associate with mcq test
-	Topic                    string // Topic Associated with MCQ
-	AvgResult                float64
+	YearlyRAna               uint                      `gorm:"primary_key; AUTO_INCREMENT"`
+	UserId                   uint                      `gorm:"foreignkey"` // User Id
+	McqId                    uint                      `gorm:"foreignkey"` // Mcq Id to associate with mcq test
+	Topic                    string                    // Topic Associated with MCQ
+	AvgResult                float64                   // Average result
 	LastModified             time.Time                 // Time user last updated result
 	YearlyMcqAnalysisResults []YearlyMcqAnalysisResult `gorm:"foreignkey:YearlyRAna"`
 }
@@ -84,11 +84,11 @@ type YearlyMcqAnalysisResult struct {
 
 // Single one for each MQC for each User
 type TotalMcqAnalysis struct {
-	TotalRAna               uint   `gorm:"primary_key; AUTO_INCREMENT"`
-	UserId                  uint   `gorm:"foreignkey"` // User Id
-	McqId                   uint   `gorm:"foreignkey"` // Mcq Id to associate with mcq test
-	Topic                   string // Topic Associated with MCQ
-	AvgResult               float64
+	TotalRAna               uint                     `gorm:"primary_key; AUTO_INCREMENT"`
+	UserId                  uint                     `gorm:"foreignkey"` // User Id
+	McqId                   uint                     `gorm:"foreignkey"` // Mcq Id to associate with mcq test
+	Topic                   string                   // Topic Associated with MCQ
+	AvgResult               float64                  // Average result
 	LastModified            time.Time                // Time user last updated result
 	TotalMcqAnalysisResults []TotalMcqAnalysisResult `gorm:"foreignkey:TotalRAna"`
 }
@@ -103,7 +103,7 @@ type TotalMcqAnalysisResult struct {
 	NumberOfResults int           `json:"number_of_results"` // Number of results over past week
 	AvgTime         time.Duration `json:"avg_time"`          // Avg time taken to answer this question
 	AvgResult       float64       `json:"avg_result"`        // Avg chance answer is correct
-	AvgConfidence   float64       // Avg level of confidence 1 change + 5sec  = v.h >5 = v.l
+	AvgConfidence   float64       // Avg level of confidence
 }
 
 // Struct used to return profile data to user
@@ -127,7 +127,7 @@ type TopicAnalysis struct {
 	UserId     uint `gorm:"foreignkey"`                 // Associated User Id
 	TopicId    uint `gorm:"foreignkey"`                 // Associated Topic Id
 	TopicName  string
-	AvgResult  float64
+	AvgResult  float64 // Average result
 }
 
 type Sql struct {
