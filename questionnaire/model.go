@@ -9,7 +9,7 @@ type Sql struct {
 	db *gorm.DB
 }
 
-type MCQ struct {
+type MCQ struct { // struct to store details of Mcq
 	McqId        uint          `gorm:"primary_key;AUTO_INCREMENT"`
 	UserId       uint          `gorm:"foreignkey"` // Created by UserId
 	Topic        string        // Topic associated with mcq
@@ -20,14 +20,14 @@ type MCQ struct {
 	McqQuestions []McqQuestion `gorm:"foreignkey:McqId"`
 }
 
-type McqQuestion struct {
-	QId      uint `gorm:"primary_key;AUTO_INCREMENT"`
-	McqId    uint `gorm:"foreignkey:McqId"` // Mcq Id to associate with mcq test
-	Question string
+type McqQuestion struct { // struct for MCQ questions
+	QId      uint        `gorm:"primary_key;AUTO_INCREMENT"`
+	McqId    uint        `gorm:"foreignkey:McqId"` // Mcq Id to associate with mcq test
+	Question string      // Question text
 	Answers  []McqAnswer `gorm:"foreignkey:QId"`
 }
 
-type McqAnswer struct {
+type McqAnswer struct { // struct for MCQ answer
 	AId    uint   `gorm:"primary_key;AUTO_INCREMENT"` // Answer Id
 	QId    uint   // Question Id to associate with Question
 	Text   string `json:"text, omitempty"`  // Answer text
@@ -35,18 +35,18 @@ type McqAnswer struct {
 	Result int    // result mark of Answer
 }
 
-type McqResult struct {
-	McqRId            uint `gorm:"primary_key;AUTO_INCREMENT"` // Result Id
-	McqId             uint `gorm:"foreignkey:McqId"`           // Mcq Id to associate with mcq test
-	UserId            uint `gorm:"foreignkey:UserId"`          // User Id to associate with user profile
-	AverageResult     float64
+type McqResult struct { // struct for MCQ results
+	McqRId            uint                `gorm:"primary_key;AUTO_INCREMENT"` // Result Id
+	McqId             uint                `gorm:"foreignkey:McqId"`           // Mcq Id to associate with mcq test
+	UserId            uint                `gorm:"foreignkey:UserId"`          // User Id to associate with user profile
+	AverageResult     float64             // Average result
 	CreatedAt         time.Time           // Time MCQ Test finished
 	McqQuestionResult []McqQuestionResult `gorm:"foreignkey:McqRId"`
 }
 
-type McqQuestionResult struct {
+type McqQuestionResult struct { // struct for MCQ Question result
 	RId     uint          `gorm:"primary_key;AUTO_INCREMENT"` // Result Id
-	QId     uint          `gorm:"foreignkey:QId"`
+	QId     uint          `gorm:"foreignkey:QId"`             // Associate with question derived from
 	McqRId  uint          // Mcq Result Id
 	Result  int           `json:"result, omitempty"`  // Answer value
 	Total   int           `json:"total, omitempty"`   // Max value

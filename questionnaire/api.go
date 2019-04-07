@@ -10,42 +10,42 @@ func NewSql(db *gorm.DB) *Sql {
 }
 
 func StoreResult(db *gorm.DB, results McqResult) {
-	db.AutoMigrate(&McqResult{})
-	db.AutoMigrate(&McqQuestionResult{})
-	var questions []McqQuestion
+	// Store user result
+	var questions []McqQuestion // Find questionnaire
 	db.Where("mcq_id = ?", results.McqId).
 		Find(&questions)
-	for index, question := range questions {
+	for index, question := range questions { // Add question id to each question result
 		results.McqQuestionResult[index].QId = question.QId
 	}
-	average := getAverageScore(results)
+	average := getAverageScore(results) // Get simple average
 	results.AverageResult = average
-	results.CreatedAt = time.Now()
-	db.Create(&results)
+	results.CreatedAt = time.Now() // Get time record stored
+	db.Create(&results)            // Create record
 }
 
-func CreateMcq(db *gorm.DB, request MCQ) {
-	db.AutoMigrate(&MCQ{}, &McqQuestion{}, &McqAnswer{})
-	request.CreatedAt = time.Now()
-	db.Create(&request)
+func CreateMcq(db *gorm.DB, mcq MCQ) {
+	// Create questionnaire
+	mcq.CreatedAt = time.Now()
+	db.Create(&mcq) // Create MCQ
 }
 
-func GrabMcqs(db *gorm.DB) []MCQ {
-	db.AutoMigrate(&MCQ{}, &McqQuestion{}, &McqAnswer{})
+func GetMcqs(db *gorm.DB) []MCQ {
+	// Get all MCQs
 	var Mcqs []MCQ
-	db.Find(&Mcqs)
+	db.Find(&Mcqs) // Collect MCQs
 	return Mcqs
 }
 
 func RetrieveMcq(db *gorm.DB, mcqId uint) MCQ {
-	db.AutoMigrate(&MCQ{})
-	var Mcq MCQ
+	// Retrieve Mcq
+	var Mcq MCQ // Collect MCQ with this ID
 	db.Where("mcq_id = ?", mcqId).Preload("McqQuestions").Preload("McqQuestions.Answers").First(&Mcq)
-	db.Table("mcqs").Update("last_used", time.Now()) // TODO: Update when mcq last used
+	db.Table("mcqs").Update("last_used", time.Now()).Where("mcq_id = ?", mcqId) // Update MCQ last_used to now
 	return Mcq
 }
 
 func getAverageScore(results McqResult) float64 {
+	// Get average of result
 	var cumulative float64
 	for _, result := range results.McqQuestionResult {
 		cumulative += float64(result.Result) / float64(result.Total)
